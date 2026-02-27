@@ -1,111 +1,99 @@
-"use client";
-import { Handle, Position } from "@xyflow/react";
-import type { Agent } from "@/lib/types";
+"use client"
+import { Handle, Position, type NodeProps } from "@xyflow/react"
+import type { Agent, CronJob } from "@/lib/types"
 
-interface AgentNodeProps {
-  data: Agent & Record<string, unknown>;
-}
+type AgentNodeData = Agent & { crons: CronJob[] } & Record<string, unknown>
 
-export function AgentNode({ data }: AgentNodeProps) {
-  const hasCrons = data.crons && data.crons.length > 0;
-  const hasError = hasCrons && data.crons.some(c => c.status === 'error');
-  const hasOk = hasCrons && data.crons.some(c => c.status === 'ok');
+export function AgentNode({ data, selected }: NodeProps) {
+  const agent = data as AgentNodeData
+  const hasCrons = agent.crons && agent.crons.length > 0
+  const hasErrors = hasCrons && agent.crons.some((c: CronJob) => c.status === "error")
 
   return (
-    <>
-      <Handle
-        type="target"
-        position={Position.Top}
-        style={{ background: "transparent", border: "none", width: 6, height: 6 }}
-      />
+    <div
+      className={`hover-lift focus-ring${selected ? " node-selected" : ""}`}
+      title={agent.title}
+      style={{
+        background: "var(--material-regular)",
+        backdropFilter: "blur(20px) saturate(180%)",
+        WebkitBackdropFilter: "blur(20px) saturate(180%)",
+        borderRadius: "var(--radius-md)",
+        border: `1px solid ${selected ? "var(--accent)" : "var(--separator)"}`,
+        padding: "var(--space-3) var(--space-4)",
+        minWidth: 140,
+        maxWidth: 180,
+        cursor: "pointer",
+        position: "relative",
+        boxShadow: selected ? "0 0 0 1px var(--accent), var(--shadow-card)" : "var(--shadow-card)",
+      }}
+    >
+      {/* Status dot -- top right */}
+      {hasCrons && (
+        <div
+          className={hasErrors ? "animate-error-pulse" : ""}
+          style={{
+            position: "absolute",
+            top: -3,
+            right: -3,
+            width: 8,
+            height: 8,
+            borderRadius: "50%",
+            background: hasErrors ? "var(--system-red)" : "var(--system-green)",
+            border: "2px solid var(--bg)",
+          }}
+        />
+      )}
+
+      {/* Emoji on tinted squircle */}
       <div
         style={{
-          width: '164px',
-          padding: '14px',
-          borderRadius: '18px',
-          background: 'var(--material-thin)',
-          border: '1px solid rgba(255,255,255,0.10)',
-          boxShadow: 'var(--shadow-card)',
-          backdropFilter: 'blur(20px) saturate(180%)',
-          WebkitBackdropFilter: 'blur(20px) saturate(180%)',
-          cursor: 'pointer',
-          userSelect: 'none',
-          transition: 'all 200ms var(--ease-spring)',
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.borderColor = 'rgba(255,255,255,0.18)';
-          e.currentTarget.style.boxShadow = 'var(--shadow-overlay)';
-          e.currentTarget.style.transform = 'translateY(-1px)';
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.borderColor = 'rgba(255,255,255,0.10)';
-          e.currentTarget.style.boxShadow = 'var(--shadow-card)';
-          e.currentTarget.style.transform = 'translateY(0)';
+          fontSize: 24,
+          marginBottom: "var(--space-1)",
+          width: 36,
+          height: 36,
+          borderRadius: 8,
+          background: `${agent.color}20`,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
         }}
       >
-        {/* Top: emoji + status dot */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span style={{ fontSize: '18px', lineHeight: 1 }}>{data.emoji}</span>
-          <span style={{
-            width: '6px',
-            height: '6px',
-            borderRadius: '50%',
-            background: hasError ? 'var(--system-red)' : hasOk ? 'var(--system-green)' : 'var(--text-tertiary)',
-            flexShrink: 0,
-          }} />
-        </div>
-
-        {/* Name */}
-        <div style={{
-          fontSize: '13px',
-          fontWeight: 600,
-          letterSpacing: '-0.2px',
-          color: 'var(--text-primary)',
-          marginTop: '8px',
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-          whiteSpace: 'nowrap',
-        }}>
-          {data.name}
-        </div>
-
-        {/* Title */}
-        <div style={{
-          fontSize: '11px',
-          fontWeight: 400,
-          color: 'var(--text-secondary)',
-          letterSpacing: '0.01em',
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-          whiteSpace: 'nowrap',
-          marginTop: '2px',
-        }}>
-          {data.title}
-        </div>
-
-        {/* Cron pill */}
-        {hasCrons && (
-          <div style={{
-            marginTop: '8px',
-            display: 'inline-block',
-            background: 'var(--fill-tertiary)',
-            borderRadius: '6px',
-            padding: '2px 8px',
-            fontSize: '10px',
-            fontWeight: 500,
-            color: 'var(--text-secondary)',
-          }}>
-            {data.crons.length} cron{data.crons.length > 1 ? 's' : ''}
-          </div>
-        )}
+        {agent.emoji}
       </div>
-      <Handle
-        type="source"
-        position={Position.Bottom}
-        style={{ background: "transparent", border: "none", width: 6, height: 6 }}
-      />
-    </>
-  );
+
+      {/* Name */}
+      <div
+        style={{
+          fontSize: "var(--text-footnote)",
+          fontWeight: "var(--weight-semibold)",
+          color: "var(--text-primary)",
+          whiteSpace: "nowrap",
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+        }}
+      >
+        {agent.name}
+      </div>
+
+      {/* Title */}
+      <div
+        style={{
+          fontSize: "var(--text-caption2)",
+          color: "var(--text-tertiary)",
+          whiteSpace: "nowrap",
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+          marginTop: 1,
+        }}
+      >
+        {agent.title}
+      </div>
+
+      {/* Handles - invisible */}
+      <Handle type="target" position={Position.Top} style={{ opacity: 0 }} />
+      <Handle type="source" position={Position.Bottom} style={{ opacity: 0 }} />
+    </div>
+  )
 }
 
-export const nodeTypes = { agentNode: AgentNode };
+export const nodeTypes = { agentNode: AgentNode }

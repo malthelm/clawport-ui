@@ -2,7 +2,7 @@
 import { useEffect, useState, useCallback, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import type { Agent } from '@/lib/types'
-import { AgentList } from '@/components/chat/AgentList'
+import { AgentList, AgentListMobile } from '@/components/chat/AgentList'
 import { ConversationView } from '@/components/chat/ConversationView'
 import {
   loadConversations, saveConversations, getOrCreateConversation,
@@ -16,6 +16,7 @@ function MessengerApp() {
   const [conversations, setConversations] = useState<ConversationStore>({})
   const [activeAgentId, setActiveAgentId] = useState<string | null>(searchParams.get('agent'))
   const [loading, setLoading] = useState(true)
+  const [mobileShowConversation, setMobileShowConversation] = useState(!!searchParams.get('agent'))
 
   // Load agents
   useEffect(() => {
@@ -37,15 +38,19 @@ function MessengerApp() {
     }
   }, [conversations])
 
-  // Set default active agent
+  // Set default active agent on desktop only (don't auto-select on mobile)
   useEffect(() => {
     if (!loading && agents.length > 0 && !activeAgentId) {
-      setActiveAgentId(agents[0].id)
+      // On desktop (>= 768px), select first agent
+      if (window.innerWidth >= 768) {
+        setActiveAgentId(agents[0].id)
+      }
     }
   }, [loading, agents, activeAgentId])
 
   const handleSelectAgent = useCallback((agent: Agent) => {
     setActiveAgentId(agent.id)
+    setMobileShowConversation(true)
     setConversations(prev => {
       const conv = getOrCreateConversation(prev, agent)
       const next = { ...prev, [agent.id]: conv }
@@ -58,6 +63,10 @@ function MessengerApp() {
     setConversations(prev => updater(prev))
   }, [])
 
+  const handleMobileBack = useCallback(() => {
+    setMobileShowConversation(false)
+  }, [])
+
   const activeAgent = agents.find(a => a.id === activeAgentId) || null
 
   // Init conversation for active agent
@@ -68,10 +77,11 @@ function MessengerApp() {
         return markRead({ ...prev, [activeAgent.id]: conv }, activeAgent.id)
       })
     }
-  }, [activeAgent?.id])
+  }, [activeAgent?.id])  // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div style={{ display: 'flex', height: '100%', background: 'var(--bg)' }}>
+      {/* Desktop sidebar — always visible on md+ */}
       <AgentList
         agents={agents}
         conversations={conversations}
@@ -80,28 +90,107 @@ function MessengerApp() {
         loading={loading}
       />
 
-      {activeAgent && conversations[activeAgent.id] ? (
-        <ConversationView
-          key={activeAgent.id}
-          agent={activeAgent}
-          conversation={conversations[activeAgent.id]}
-          onUpdate={handleConversationUpdate}
-        />
-      ) : (
-        <div style={{
+      {/* Mobile agent list — shown when no conversation selected */}
+      <div
+        className="md:hidden"
+        style={{
+          display: mobileShowConversation ? 'none' : 'flex',
           flex: 1,
-          display: 'flex',
           flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          background: 'var(--bg)',
-          gap: 12,
-        }}>
-          <div style={{ fontSize: 48 }}>&#127984;</div>
-          <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.3px' }}>Manor Messages</div>
-          <div style={{ fontSize: 15, color: 'var(--text-secondary)' }}>Select an agent to start chatting</div>
+          height: '100%',
+        }}
+      >
+        <AgentListMobile
+          agents={agents}
+          conversations={conversations}
+          onSelect={handleSelectAgent}
+          loading={loading}
+        />
+      </div>
+
+      {/* Desktop conversation view — visible when agent selected on md+ */}
+      <div
+        className="hidden md:flex"
+        style={{ flex: 1, flexDirection: 'column', height: '100%' }}
+      >
+        {activeAgent && conversations[activeAgent.id] ? (
+          <ConversationView
+            key={activeAgent.id}
+            agent={activeAgent}
+            conversation={conversations[activeAgent.id]}
+            onUpdate={handleConversationUpdate}
+          />
+        ) : (
+          <EmptyState />
+        )}
+      </div>
+
+      {/* Mobile conversation view — shown full width when agent selected */}
+      {mobileShowConversation && activeAgent && conversations[activeAgent.id] && (
+        <div
+          className="md:hidden"
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 20,
+            display: 'flex',
+            flexDirection: 'column',
+            background: 'var(--bg)',
+          }}
+        >
+          <ConversationView
+            key={activeAgent.id}
+            agent={activeAgent}
+            conversation={conversations[activeAgent.id]}
+            onUpdate={handleConversationUpdate}
+            onBack={handleMobileBack}
+          />
         </div>
       )}
+    </div>
+  )
+}
+
+function EmptyState() {
+  return (
+    <div style={{
+      flex: 1,
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      background: 'var(--bg)',
+      gap: 'var(--space-3)',
+      padding: 'var(--space-8)',
+    }}>
+      <div style={{ fontSize: 48, marginBottom: 'var(--space-2)' }}>
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+        </svg>
+      </div>
+      <div style={{
+        fontSize: 'var(--text-title3)',
+        fontWeight: 'var(--weight-bold)',
+        color: 'var(--text-primary)',
+        letterSpacing: '-0.3px',
+      }}>
+        Manor Messages
+      </div>
+      <div style={{
+        fontSize: 'var(--text-subheadline)',
+        color: 'var(--text-secondary)',
+        textAlign: 'center',
+        lineHeight: 'var(--leading-relaxed)',
+      }}>
+        Select an agent from the sidebar to start chatting
+      </div>
+      <div style={{
+        fontSize: 'var(--text-caption1)',
+        color: 'var(--text-quaternary)',
+        marginTop: 'var(--space-2)',
+      }}>
+        Press Cmd+K to search agents
+      </div>
     </div>
   )
 }

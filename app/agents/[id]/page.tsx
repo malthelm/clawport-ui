@@ -1,284 +1,740 @@
-"use client";
-import { useEffect, useState, use } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import type { Agent, CronJob } from "@/lib/types";
-
-function timeAgo(dateStr: string | null): string {
-  if (!dateStr) return "never";
-  const diff = Date.now() - new Date(dateStr).getTime();
-  const mins = Math.floor(diff / 60000);
-  const hrs = Math.floor(diff / 3600000);
-  const days = Math.floor(diff / 86400000);
-  if (mins < 1) return "just now";
-  if (mins < 60) return `${mins}m ago`;
-  if (hrs < 24) return `${hrs}h ago`;
-  return `${days}d ago`;
-}
-
-const statusColors: Record<string, { text: string; bg: string }> = {
-  ok: { text: 'var(--green)', bg: 'rgba(48,209,88,0.1)' },
-  error: { text: 'var(--red)', bg: 'rgba(255,69,58,0.1)' },
-  idle: { text: 'var(--text-secondary)', bg: 'rgba(120,120,128,0.1)' },
-};
+"use client"
+import { useEffect, useState, use, useCallback } from "react"
+import Link from "next/link"
+import { useRouter } from "next/navigation"
+import type { Agent, CronJob } from "@/lib/types"
+import { Skeleton } from "@/components/ui/skeleton"
+import { ErrorState } from "@/components/ErrorState"
 
 const TOOL_ICONS: Record<string, string> = {
-  web_search: "🔍",
-  read: "📁",
-  write: "✏️",
-  exec: "💻",
-  web_fetch: "🌐",
-  message: "🔔",
-  tts: "💬",
-};
-
-function SoulViewer({ content }: { content: string }) {
-  const lines = content.split("\n");
-  return (
-    <div className="rounded-apple max-h-96 overflow-y-auto flex" style={{ background: 'var(--bg)' }}>
-      <div className="flex-shrink-0 px-3 py-4 select-none" style={{ borderRight: '1px solid var(--border-light)' }}>
-        {lines.map((_, i) => (
-          <div key={i} className="font-mono text-[11px] leading-relaxed text-right min-w-[2ch]" style={{ color: 'var(--text-tertiary)' }}>
-            {i + 1}
-          </div>
-        ))}
-      </div>
-      <pre className="font-mono text-[12px] whitespace-pre-wrap leading-relaxed p-4 flex-1" style={{ color: 'var(--text-secondary)' }}>
-        {content}
-      </pre>
-    </div>
-  );
+  web_search: "\uD83D\uDD0D",
+  read: "\uD83D\uDCC1",
+  write: "\u270F\uFE0F",
+  exec: "\uD83D\uDCBB",
+  web_fetch: "\uD83C\uDF10",
+  message: "\uD83D\uDD14",
+  tts: "\uD83D\uDCAC",
+  edit: "\u2702\uFE0F",
+  sessions_spawn: "\uD83D\uDD04",
+  memory_search: "\uD83E\udDE0",
 }
 
-export default function AgentDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params);
-  const router = useRouter();
-  const [agent, setAgent] = useState<Agent | null>(null);
-  const [allAgents, setAllAgents] = useState<Agent[]>([]);
-  const [crons, setCrons] = useState<CronJob[]>([]);
-  const [loading, setLoading] = useState(true);
+function StatusDot({ status }: { status: CronJob["status"] }) {
+  return (
+    <span
+      className={status === "error" ? "animate-error-pulse" : ""}
+      style={{
+        display: "inline-block",
+        width: 6,
+        height: 6,
+        borderRadius: "50%",
+        flexShrink: 0,
+        background:
+          status === "ok"
+            ? "var(--system-green)"
+            : status === "error"
+              ? "var(--system-red)"
+              : "var(--text-tertiary)",
+      }}
+    />
+  )
+}
 
-  useEffect(() => {
-    Promise.all([fetch("/api/agents").then((r) => r.json()), fetch("/api/crons").then((r) => r.json())])
-      .then(([agents, c]) => {
-        setAllAgents(agents);
-        setAgent(agents.find((a: Agent) => a.id === id) || null);
-        setCrons(c.filter((cr: CronJob) => cr.agentId === id));
-      })
-      .finally(() => setLoading(false));
-  }, [id]);
+function SoulViewer({ content }: { content: string }) {
+  const [copied, setCopied] = useState(false)
 
-  if (loading) return <div className="flex items-center justify-center h-full text-[15px] animate-pulse" style={{ color: 'var(--accent)' }}>Loading agent...</div>;
-  if (!agent) return <div className="flex items-center justify-center h-full text-[15px]" style={{ color: 'var(--text-secondary)' }}>Agent not found. <Link href="/" className="ml-1" style={{ color: 'var(--blue)' }}>← Back</Link></div>;
-
-  const parent = agent.reportsTo ? allAgents.find((a) => a.id === agent.reportsTo) : null;
-  const children = agent.directReports.map((cid) => allAgents.find((a) => a.id === cid)).filter(Boolean) as Agent[];
+  const handleCopy = useCallback(() => {
+    navigator.clipboard.writeText(content).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    })
+  }, [content])
 
   return (
-    <div className="h-full overflow-y-auto" style={{ background: 'var(--bg)' }}>
-      {/* Header */}
+    <div
+      style={{
+        background: "var(--bg)",
+        borderRadius: "var(--radius-md)",
+        overflow: "hidden",
+        position: "relative",
+      }}
+    >
+      <pre
+        style={{
+          fontFamily: "var(--font-mono)",
+          fontSize: "var(--text-caption1)",
+          whiteSpace: "pre-wrap",
+          lineHeight: 1.6,
+          padding: "var(--space-4)",
+          color: "var(--text-secondary)",
+          margin: 0,
+          maxHeight: 400,
+          overflowY: "auto",
+        }}
+      >
+        {content}
+      </pre>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "flex-end",
+          gap: "var(--space-2)",
+          padding: "var(--space-2) var(--space-3)",
+          borderTop: "1px solid var(--separator)",
+        }}
+      >
+        <button
+          onClick={handleCopy}
+          className="focus-ring"
+          aria-label="Copy SOUL.md content"
+          style={{
+            background: "var(--fill-tertiary)",
+            color: "var(--text-secondary)",
+            border: "none",
+            borderRadius: "var(--radius-sm)",
+            padding: "var(--space-1) var(--space-3)",
+            fontSize: "var(--text-caption2)",
+            fontWeight: "var(--weight-medium)",
+            cursor: "pointer",
+            transition: "all 150ms var(--ease-spring)",
+          }}
+        >
+          {copied ? "Copied" : "Copy"}
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function CopyButton({ text, label }: { text: string; label: string }) {
+  const [copied, setCopied] = useState(false)
+
+  const handleCopy = useCallback(() => {
+    navigator.clipboard.writeText(text).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    })
+  }, [text])
+
+  return (
+    <button
+      onClick={handleCopy}
+      className="focus-ring"
+      aria-label={label}
+      style={{
+        background: "var(--fill-tertiary)",
+        color: "var(--text-secondary)",
+        border: "none",
+        borderRadius: "var(--radius-sm)",
+        padding: "var(--space-1) var(--space-2)",
+        fontSize: "var(--text-caption2)",
+        fontWeight: "var(--weight-medium)",
+        cursor: "pointer",
+        transition: "all 150ms var(--ease-spring)",
+        flexShrink: 0,
+      }}
+    >
+      {copied ? "Copied" : "Copy"}
+    </button>
+  )
+}
+
+/* ──────────────────────────────────────────────
+   Card wrapper with consistent styling
+   ────────────────────────────────────────────── */
+function Card({
+  children,
+  className,
+}: {
+  children: React.ReactNode
+  className?: string
+}) {
+  return (
+    <div
+      className={className}
+      style={{
+        background: "var(--material-regular)",
+        border: "1px solid var(--separator)",
+        borderRadius: "var(--radius-lg)",
+        padding: "var(--space-5)",
+        boxShadow: "var(--shadow-card)",
+      }}
+    >
+      {children}
+    </div>
+  )
+}
+
+/* ──────────────────────────────────────────────
+   Loading skeleton for the detail page
+   ────────────────────────────────────────────── */
+function DetailSkeleton() {
+  return (
+    <div className="h-full overflow-y-auto" style={{ background: "var(--bg)" }}>
+      {/* Header skeleton */}
       <div
         className="sticky top-0 z-10 px-6 py-4 flex items-center justify-between"
         style={{
-          background: 'var(--bg-elevated)',
-          borderTop: `3px solid ${agent.color}`,
-          boxShadow: `0 1px 0 var(--border)`,
+          background: "var(--material-regular)",
+          borderBottom: "1px solid var(--separator)",
         }}
       >
+        <Skeleton width={80} height={16} />
+        <Skeleton width={100} height={36} style={{ borderRadius: "var(--radius-md)" }} />
+      </div>
+      <div
+        style={{
+          maxWidth: 720,
+          margin: "0 auto",
+          padding: "var(--space-8) var(--space-6)",
+          display: "flex",
+          flexDirection: "column",
+          gap: "var(--space-5)",
+        }}
+      >
+        {/* Hero skeleton */}
         <div className="flex items-center gap-4">
-          <Link href="/" className="hover:opacity-80 text-[15px] transition-opacity" style={{ color: 'var(--blue)' }}>← Map</Link>
-          <div className="flex items-center gap-3">
-            <span className="text-[28px]">{agent.emoji}</span>
-            <div>
-              <span className="font-bold text-[20px] tracking-tight" style={{ color: 'var(--text-primary)' }}>{agent.name}</span>
-              <div className="text-[13px]" style={{ color: 'var(--text-secondary)' }}>{agent.title}</div>
-            </div>
+          <Skeleton
+            width={64}
+            height={64}
+            style={{ borderRadius: 16 }}
+          />
+          <div className="flex flex-col gap-2">
+            <Skeleton width={140} height={22} />
+            <Skeleton width={200} height={14} />
           </div>
         </div>
-        <button
-          onClick={() => router.push(`/chat/${agent.id}`)}
-          className="font-semibold text-[15px] px-5 py-2.5 rounded-xl transition-colors"
-          style={{ background: 'var(--accent)', color: '#000' }}
+        {/* Card skeletons */}
+        {[1, 2, 3].map((i) => (
+          <Skeleton
+            key={i}
+            height={120}
+            style={{
+              width: "100%",
+              borderRadius: "var(--radius-lg)",
+            }}
+          />
+        ))}
+      </div>
+    </div>
+  )
+}
+
+/* ──────────────────────────────────────────────
+   Agent Detail Page
+   ────────────────────────────────────────────── */
+export default function AgentDetailPage({
+  params,
+}: {
+  params: Promise<{ id: string }>
+}) {
+  const { id } = use(params)
+  const router = useRouter()
+  const [agent, setAgent] = useState<Agent | null>(null)
+  const [allAgents, setAllAgents] = useState<Agent[]>([])
+  const [crons, setCrons] = useState<CronJob[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  const loadData = useCallback(() => {
+    setLoading(true)
+    setError(null)
+    Promise.all([
+      fetch("/api/agents").then((r) => {
+        if (!r.ok) throw new Error("Failed to fetch agents")
+        return r.json()
+      }),
+      fetch("/api/crons").then((r) => {
+        if (!r.ok) throw new Error("Failed to fetch crons")
+        return r.json()
+      }),
+    ])
+      .then(([agents, c]) => {
+        setAllAgents(agents)
+        setAgent(agents.find((a: Agent) => a.id === id) || null)
+        setCrons(c.filter((cr: CronJob) => cr.agentId === id))
+      })
+      .catch((e) => setError(e.message))
+      .finally(() => setLoading(false))
+  }, [id])
+
+  useEffect(() => {
+    loadData()
+  }, [loadData])
+
+  if (loading) return <DetailSkeleton />
+  if (error) return <ErrorState message={error} onRetry={loadData} />
+  if (!agent) {
+    return (
+      <div
+        className="flex flex-col items-center justify-center h-full gap-3"
+        style={{ background: "var(--bg)" }}
+      >
+        <div
+          style={{
+            fontSize: "var(--text-headline)",
+            color: "var(--text-secondary)",
+          }}
         >
-          Open Chat
-        </button>
+          Agent not found
+        </div>
+        <Link
+          href="/"
+          className="focus-ring"
+          style={{
+            color: "var(--system-blue)",
+            fontSize: "var(--text-body)",
+          }}
+        >
+          &larr; Back to Map
+        </Link>
+      </div>
+    )
+  }
+
+  const parent = agent.reportsTo
+    ? allAgents.find((a) => a.id === agent.reportsTo)
+    : null
+  const children = agent.directReports
+    .map((cid) => allAgents.find((a) => a.id === cid))
+    .filter(Boolean) as Agent[]
+
+  return (
+    <div className="h-full overflow-y-auto" style={{ background: "var(--bg)" }}>
+      {/* ── Sticky header ── */}
+      <div
+        className="sticky top-0 z-10"
+        style={{
+          background: "var(--material-regular)",
+          backdropFilter: "blur(20px) saturate(180%)",
+          WebkitBackdropFilter: "blur(20px) saturate(180%)",
+          borderBottom: "1px solid var(--separator)",
+        }}
+      >
+        {/* Color strip */}
+        <div style={{ height: 3, background: agent.color }} />
+
+        <div
+          className="flex items-center justify-between"
+          style={{ padding: "var(--space-3) var(--space-6)" }}
+        >
+          <Link
+            href="/"
+            className="focus-ring"
+            style={{
+              color: "var(--system-blue)",
+              fontSize: "var(--text-body)",
+              fontWeight: "var(--weight-medium)",
+              textDecoration: "none",
+            }}
+          >
+            &larr; Back to Map
+          </Link>
+          <button
+            onClick={() => router.push(`/chat/${agent.id}`)}
+            className="focus-ring"
+            aria-label={`Open chat with ${agent.name}`}
+            style={{
+              background: "var(--accent)",
+              color: "#000",
+              border: "none",
+              borderRadius: "var(--radius-md)",
+              padding: "var(--space-2) var(--space-5)",
+              fontSize: "var(--text-body)",
+              fontWeight: "var(--weight-semibold)",
+              cursor: "pointer",
+              transition: "all 150ms var(--ease-spring)",
+            }}
+          >
+            Open Chat &rarr;
+          </button>
+        </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-5 p-6">
-        {/* Left column */}
-        <div className="col-span-1 space-y-4">
-          {/* About */}
+      {/* ── Content ── */}
+      <div
+        style={{
+          maxWidth: 720,
+          margin: "0 auto",
+          padding: "var(--space-8) var(--space-6)",
+          display: "flex",
+          flexDirection: "column",
+          gap: "var(--space-5)",
+        }}
+      >
+        {/* ── Hero section ── */}
+        <div className="flex items-start gap-4">
           <div
-            className="relative overflow-hidden glass-card"
             style={{
-              background: 'var(--bg-elevated)',
-              border: '1px solid var(--sidebar-border)',
-              borderRadius: 'var(--radius)',
-              padding: '1rem',
-              boxShadow: 'var(--shadow-sm), var(--inset-shine)',
+              width: 64,
+              height: 64,
+              borderRadius: 16,
+              background: `${agent.color}26`,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: 32,
+              flexShrink: 0,
             }}
           >
-            <span
-              className="absolute -bottom-2 -right-1 text-[48px] opacity-[0.04] select-none pointer-events-none"
-              aria-hidden="true"
-            >
-              {agent.emoji}
-            </span>
-            <div className="text-[10px] font-semibold uppercase tracking-[0.08em] mb-2" style={{ color: 'var(--text-tertiary)' }}>About</div>
-            <p className="text-[14px] leading-[1.6] relative" style={{ color: 'var(--text-secondary)' }}>{agent.description}</p>
+            {agent.emoji}
           </div>
+          <div>
+            <h1
+              style={{
+                fontSize: "var(--text-title1)",
+                fontWeight: "var(--weight-bold)",
+                letterSpacing: "-0.5px",
+                color: "var(--text-primary)",
+                margin: 0,
+                lineHeight: 1.2,
+              }}
+            >
+              {agent.name}
+            </h1>
+            <p
+              style={{
+                fontSize: "var(--text-subheadline)",
+                color: "var(--text-secondary)",
+                margin: "2px 0 0",
+              }}
+            >
+              {agent.title}
+            </p>
+            {/* Color swatch */}
+            <div
+              style={{
+                display: "inline-block",
+                marginTop: "var(--space-2)",
+                width: 40,
+                height: 3,
+                borderRadius: 2,
+                background: agent.color,
+              }}
+            />
+          </div>
+        </div>
 
-          {/* Tools */}
-          <div
-            className="glass-card"
+        {/* ── About card ── */}
+        <Card>
+          <div className="section-header" style={{ marginBottom: "var(--space-3)" }}>
+            About
+          </div>
+          <p
             style={{
-              background: 'var(--bg-elevated)',
-              border: '1px solid var(--sidebar-border)',
-              borderRadius: 'var(--radius)',
-              padding: '1rem',
-              boxShadow: 'var(--shadow-sm), var(--inset-shine)',
+              fontSize: "var(--text-body)",
+              lineHeight: 1.65,
+              color: "var(--text-secondary)",
+              margin: 0,
             }}
           >
-            <div className="text-[10px] font-semibold uppercase tracking-[0.08em] mb-2.5" style={{ color: 'var(--text-tertiary)' }}>Tools</div>
-            <div className="grid grid-cols-2 gap-1.5">
+            {agent.description}
+          </p>
+        </Card>
+
+        {/* ── Two-column: Tools + Hierarchy ── */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          {/* Tools card */}
+          <Card>
+            <div className="section-header" style={{ marginBottom: "var(--space-3)" }}>
+              Tools
+            </div>
+            <div className="flex flex-wrap gap-2">
               {agent.tools.map((t) => (
                 <span
                   key={t}
-                  className="inline-flex items-center gap-1.5 text-[11px] font-mono px-2.5 py-1 rounded-full"
-                  style={{ background: 'var(--bg-fill-2)', color: 'var(--text-secondary)' }}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 4,
+                    background: "var(--fill-secondary)",
+                    borderRadius: 8,
+                    padding: "6px 12px",
+                    fontSize: "var(--text-caption1)",
+                    fontFamily: "var(--font-mono)",
+                    color: "var(--text-secondary)",
+                  }}
                 >
-                  {TOOL_ICONS[t] && <span className="text-[10px]">{TOOL_ICONS[t]}</span>}
+                  {TOOL_ICONS[t] && (
+                    <span style={{ fontSize: "var(--text-caption2)" }}>
+                      {TOOL_ICONS[t]}
+                    </span>
+                  )}
                   {t}
                 </span>
               ))}
             </div>
-          </div>
+          </Card>
 
-          {/* Voice */}
-          <div
-            className="glass-card"
-            style={{
-              background: 'var(--bg-elevated)',
-              border: '1px solid var(--sidebar-border)',
-              borderRadius: 'var(--radius)',
-              padding: '1rem',
-              boxShadow: 'var(--shadow-sm), var(--inset-shine)',
-            }}
-          >
-            <div className="text-[10px] font-semibold uppercase tracking-[0.08em] mb-2" style={{ color: 'var(--text-tertiary)' }}>Voice</div>
-            {agent.voiceId ? (
-              <div>
-                <span className="inline-block text-[12px] px-2.5 py-0.5 rounded-full mb-1" style={{ background: 'rgba(191,90,242,0.1)', color: 'var(--purple)', border: '1px solid rgba(191,90,242,0.2)' }}>ElevenLabs</span>
-                <div className="font-mono text-[11px] mt-1 break-all" style={{ color: 'var(--text-tertiary)' }}>{agent.voiceId}</div>
-              </div>
-            ) : (
-              <span className="text-[13px]" style={{ color: 'var(--text-secondary)' }}>No voice configured</span>
-            )}
-          </div>
-
-          {/* Hierarchy */}
-          <div
-            className="glass-card"
-            style={{
-              background: 'var(--bg-elevated)',
-              border: '1px solid var(--sidebar-border)',
-              borderRadius: 'var(--radius)',
-              padding: '1rem',
-              boxShadow: 'var(--shadow-sm), var(--inset-shine)',
-            }}
-          >
-            <div className="text-[10px] font-semibold uppercase tracking-[0.08em] mb-2" style={{ color: 'var(--text-tertiary)' }}>Hierarchy</div>
+          {/* Hierarchy card */}
+          <Card>
+            <div className="section-header" style={{ marginBottom: "var(--space-3)" }}>
+              Hierarchy
+            </div>
             {parent && (
-              <div className="mb-3">
-                <div className="text-[11px] mb-1" style={{ color: 'var(--text-tertiary)' }}>Reports to</div>
-                <Link href={`/agents/${parent.id}`} className="flex items-center gap-2 text-[14px] transition-colors" style={{ color: 'var(--text-primary)' }}>
+              <div style={{ marginBottom: "var(--space-3)" }}>
+                <div
+                  style={{
+                    fontSize: "var(--text-caption2)",
+                    color: "var(--text-tertiary)",
+                    marginBottom: 2,
+                  }}
+                >
+                  Reports to
+                </div>
+                <Link
+                  href={`/agents/${parent.id}`}
+                  className="focus-ring"
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "var(--space-2)",
+                    fontSize: "var(--text-body)",
+                    fontWeight: "var(--weight-medium)",
+                    color: "var(--system-blue)",
+                    textDecoration: "none",
+                  }}
+                >
                   <span>{parent.emoji}</span>
-                  <span className="font-medium">{parent.name}</span>
+                  <span>{parent.name}</span>
+                  <span style={{ color: "var(--text-tertiary)" }}>&rarr;</span>
                 </Link>
               </div>
             )}
             {children.length > 0 && (
               <div>
-                <div className="text-[11px] mb-1" style={{ color: 'var(--text-tertiary)' }}>Direct reports ({children.length})</div>
-                <div className="space-y-1">
+                <div
+                  style={{
+                    fontSize: "var(--text-caption2)",
+                    color: "var(--text-tertiary)",
+                    marginBottom: 2,
+                  }}
+                >
+                  Direct reports ({children.length})
+                </div>
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 2,
+                  }}
+                >
                   {children.map((c) => (
-                    <Link key={c.id} href={`/agents/${c.id}`} className="flex items-center gap-2 text-[14px] transition-colors" style={{ color: 'var(--text-primary)' }}>
+                    <Link
+                      key={c.id}
+                      href={`/agents/${c.id}`}
+                      className="focus-ring"
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "var(--space-2)",
+                        fontSize: "var(--text-body)",
+                        fontWeight: "var(--weight-medium)",
+                        color: "var(--system-blue)",
+                        textDecoration: "none",
+                        padding: "2px 0",
+                      }}
+                    >
                       <span>{c.emoji}</span>
-                      <span className="font-medium">{c.name}</span>
+                      <span>{c.name}</span>
+                      <span style={{ color: "var(--text-tertiary)" }}>&rarr;</span>
                     </Link>
                   ))}
                 </div>
               </div>
             )}
-          </div>
-        </div>
-
-        {/* Right column */}
-        <div className="col-span-2 space-y-4">
-          {/* SOUL.md */}
-          {agent.soul && (
-            <div
-              className="glass-card"
-              style={{
-                background: 'var(--bg-elevated)',
-                border: '1px solid var(--sidebar-border)',
-                borderRadius: 'var(--radius)',
-                padding: '1rem',
-                boxShadow: 'var(--shadow-sm), var(--inset-shine)',
-              }}
-            >
-              <div className="text-[10px] font-semibold uppercase tracking-[0.08em] mb-3" style={{ color: 'var(--text-tertiary)' }}>SOUL.md</div>
-              <SoulViewer content={agent.soul} />
-            </div>
-          )}
-
-          {/* Crons */}
-          <div
-            className="glass-card"
-            style={{
-              background: 'var(--bg-elevated)',
-              border: '1px solid var(--sidebar-border)',
-              borderRadius: 'var(--radius)',
-              padding: '1rem',
-              boxShadow: 'var(--shadow-sm), var(--inset-shine)',
-            }}
-          >
-            <div className="text-[10px] font-semibold uppercase tracking-[0.08em] mb-3" style={{ color: 'var(--text-tertiary)' }}>
-              Associated Crons {crons.length > 0 && `(${crons.length})`}
-            </div>
-            {crons.length === 0 ? (
-              <div className="text-[13px]" style={{ color: 'var(--text-secondary)' }}>No crons associated with this agent</div>
-            ) : (
-              <div className="rounded-apple overflow-hidden">
-                {crons.map((c, i) => (
-                  <div
-                    key={c.id}
-                    className="flex items-center px-4 py-3"
-                    style={{
-                      borderBottom: i < crons.length - 1 ? '1px solid var(--border-light)' : undefined,
-                      background: c.status === "error" ? 'rgba(255,69,58,0.06)' : undefined,
-                    }}
-                  >
-                    <span
-                      className={`w-2 h-2 rounded-full flex-shrink-0 ${c.status === "ok" ? "bg-[#30d158]" : c.status === "error" ? "bg-[#ff453a] animate-error-pulse" : ""}`}
-                      style={c.status === "idle" ? { background: 'var(--text-tertiary)' } : undefined}
-                    />
-                    <span className="text-[14px] font-mono ml-3" style={{ color: 'var(--text-primary)' }}>{c.name}</span>
-                    <span className="ml-auto text-[12px] font-mono" style={{ color: 'var(--text-secondary)' }}>{c.schedule}</span>
-                    <span
-                      className="ml-3 px-2 py-0.5 rounded-full text-[11px]"
-                      style={{ color: statusColors[c.status]?.text, background: statusColors[c.status]?.bg }}
-                    >
-                      {c.status}
-                    </span>
-                    <span className="ml-3 text-[12px]" style={{ color: 'var(--text-tertiary)' }}>{timeAgo(c.nextRun)}</span>
-                  </div>
-                ))}
+            {!parent && children.length === 0 && (
+              <div
+                style={{
+                  fontSize: "var(--text-footnote)",
+                  color: "var(--text-tertiary)",
+                }}
+              >
+                No hierarchy connections
               </div>
             )}
-          </div>
+          </Card>
         </div>
+
+        {/* ── SOUL.md card ── */}
+        {agent.soul && (
+          <Card>
+            <div className="section-header" style={{ marginBottom: "var(--space-3)" }}>
+              SOUL.md
+            </div>
+            <SoulViewer content={agent.soul} />
+          </Card>
+        )}
+
+        {/* ── Crons card ── */}
+        <Card>
+          <div
+            className="section-header"
+            style={{
+              marginBottom: "var(--space-3)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+            }}
+          >
+            <span>Crons {crons.length > 0 && `(${crons.length})`}</span>
+          </div>
+          {crons.length === 0 ? (
+            <div
+              style={{
+                fontSize: "var(--text-footnote)",
+                color: "var(--text-tertiary)",
+              }}
+            >
+              No crons associated with this agent
+            </div>
+          ) : (
+            <div
+              style={{
+                borderRadius: "var(--radius-md)",
+                overflow: "hidden",
+                border: "1px solid var(--separator)",
+              }}
+            >
+              {crons.map((c, idx) => (
+                <div
+                  key={c.id}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "var(--space-2)",
+                    minHeight: 44,
+                    padding: "0 var(--space-3)",
+                    borderTop: idx > 0 ? "1px solid var(--separator)" : undefined,
+                    background:
+                      c.status === "error" ? "rgba(255,69,58,0.06)" : undefined,
+                  }}
+                >
+                  <StatusDot status={c.status} />
+                  <span
+                    style={{
+                      fontSize: "var(--text-body)",
+                      fontFamily: "var(--font-mono)",
+                      fontWeight: "var(--weight-medium)",
+                      color: "var(--text-primary)",
+                      flex: 1,
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {c.name}
+                  </span>
+                  <span
+                    style={{
+                      fontSize: "var(--text-caption1)",
+                      fontFamily: "var(--font-mono)",
+                      color: "var(--text-tertiary)",
+                      flexShrink: 0,
+                    }}
+                  >
+                    {c.schedule}
+                  </span>
+                  <span
+                    style={{
+                      fontSize: "var(--text-caption2)",
+                      fontWeight: "var(--weight-medium)",
+                      padding: "2px 8px",
+                      borderRadius: 20,
+                      flexShrink: 0,
+                      background:
+                        c.status === "ok"
+                          ? "rgba(48,209,88,0.1)"
+                          : c.status === "error"
+                            ? "rgba(255,69,58,0.1)"
+                            : "rgba(120,120,128,0.1)",
+                      color:
+                        c.status === "ok"
+                          ? "var(--system-green)"
+                          : c.status === "error"
+                            ? "var(--system-red)"
+                            : "var(--text-secondary)",
+                    }}
+                  >
+                    {c.status}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+          {crons.length > 0 && (
+            <div style={{ textAlign: "right", marginTop: "var(--space-3)" }}>
+              <Link
+                href="/crons"
+                className="focus-ring"
+                style={{
+                  fontSize: "var(--text-footnote)",
+                  color: "var(--system-blue)",
+                  textDecoration: "none",
+                  fontWeight: "var(--weight-medium)",
+                }}
+              >
+                View all crons &rarr;
+              </Link>
+            </div>
+          )}
+        </Card>
+
+        {/* ── Voice card ── */}
+        <Card>
+          <div className="section-header" style={{ marginBottom: "var(--space-3)" }}>
+            Voice
+          </div>
+          {agent.voiceId ? (
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "var(--space-3)",
+              }}
+            >
+              <span
+                style={{
+                  display: "inline-block",
+                  padding: "2px 10px",
+                  borderRadius: 20,
+                  fontSize: "var(--text-caption1)",
+                  fontWeight: "var(--weight-medium)",
+                  background: "rgba(191,90,242,0.1)",
+                  color: "var(--system-purple)",
+                  border: "1px solid rgba(191,90,242,0.2)",
+                  flexShrink: 0,
+                }}
+              >
+                ElevenLabs
+              </span>
+              <span
+                style={{
+                  fontFamily: "var(--font-mono)",
+                  fontSize: "var(--text-caption2)",
+                  color: "var(--text-tertiary)",
+                  flex: 1,
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {agent.voiceId}
+              </span>
+              <CopyButton text={agent.voiceId} label="Copy voice ID" />
+            </div>
+          ) : (
+            <div
+              style={{
+                fontSize: "var(--text-footnote)",
+                color: "var(--text-tertiary)",
+              }}
+            >
+              No voice configured
+            </div>
+          )}
+        </Card>
       </div>
     </div>
-  );
+  )
 }

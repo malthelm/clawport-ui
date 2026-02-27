@@ -1,4 +1,5 @@
 'use client';
+
 import { useRef, useCallback } from 'react';
 import { THEMES } from '@/lib/themes';
 import { useTheme } from '@/app/providers';
@@ -7,46 +8,53 @@ export function ThemeToggle() {
   const { theme, setTheme } = useTheme();
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-    const buttons = containerRef.current?.querySelectorAll<HTMLButtonElement>('button');
-    if (!buttons || buttons.length === 0) return;
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      const buttons =
+        containerRef.current?.querySelectorAll<HTMLButtonElement>('button');
+      if (!buttons || buttons.length === 0) return;
 
-    const currentIndex = THEMES.findIndex(t => t.id === theme);
+      const currentIndex = THEMES.findIndex((t) => t.id === theme);
 
-    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
-      e.preventDefault();
-      const nextIndex = (currentIndex + 1) % THEMES.length;
-      setTheme(THEMES[nextIndex].id);
-      buttons[nextIndex].focus();
-    } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
-      e.preventDefault();
-      const prevIndex = (currentIndex - 1 + THEMES.length) % THEMES.length;
-      setTheme(THEMES[prevIndex].id);
-      buttons[prevIndex].focus();
-    }
-  }, [theme, setTheme]);
+      if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+        e.preventDefault();
+        const nextIndex = (currentIndex + 1) % THEMES.length;
+        setTheme(THEMES[nextIndex].id);
+        buttons[nextIndex].focus();
+      } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+        e.preventDefault();
+        const prevIndex =
+          (currentIndex - 1 + THEMES.length) % THEMES.length;
+        setTheme(THEMES[prevIndex].id);
+        buttons[prevIndex].focus();
+      }
+    },
+    [theme, setTheme]
+  );
 
   return (
     <div style={{ padding: '8px 16px 12px' }}>
-      <div style={{
-        fontSize: '11px',
-        fontWeight: 600,
-        letterSpacing: '0.06em',
-        color: 'var(--text-tertiary)',
-        textTransform: 'uppercase' as const,
-        marginBottom: '6px',
-        paddingLeft: '4px',
-      }}>
-        THEME
+      <div
+        style={{
+          fontSize: '11px',
+          fontWeight: 600,
+          letterSpacing: '0.06em',
+          color: 'var(--text-tertiary)',
+          textTransform: 'uppercase',
+          marginBottom: '6px',
+          paddingLeft: '4px',
+        }}
+      >
+        Theme
       </div>
       <div
         ref={containerRef}
-        className="flex gap-1.5"
+        className="flex flex-wrap gap-1.5"
         role="radiogroup"
         aria-label="Theme selection"
         onKeyDown={handleKeyDown}
       >
-        {THEMES.map(t => {
+        {THEMES.map((t) => {
           const isActive = theme === t.id;
           return (
             <button
@@ -57,33 +65,40 @@ export function ThemeToggle() {
               aria-checked={isActive}
               aria-label={`${t.label} theme`}
               tabIndex={isActive ? 0 : -1}
+              className="focus-ring"
               style={{
-                width: '28px',
-                height: '28px',
-                borderRadius: '50%',
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '13px',
+                gap: '4px',
+                height: '28px',
+                padding: isActive ? '0 10px' : '0 6px',
+                borderRadius: '14px',
+                fontSize: '12px',
+                fontWeight: isActive ? 600 : 500,
                 border: 'none',
                 cursor: 'pointer',
                 transition: 'all 150ms var(--ease-spring)',
-                background: isActive ? 'var(--accent-fill)' : 'var(--fill-quaternary)',
-                boxShadow: isActive ? '0 0 0 1.5px var(--accent)' : 'none',
+                background: isActive
+                  ? 'var(--accent-fill)'
+                  : 'var(--fill-quaternary)',
+                color: isActive ? 'var(--accent)' : 'var(--text-tertiary)',
                 outline: 'none',
               }}
-              onFocus={(e) => {
-                e.currentTarget.style.boxShadow = isActive
-                  ? '0 0 0 1.5px var(--accent), 0 0 0 3px var(--system-blue)'
-                  : '0 0 0 2px var(--system-blue)';
-              }}
-              onBlur={(e) => {
-                e.currentTarget.style.boxShadow = isActive
-                  ? '0 0 0 1.5px var(--accent)'
-                  : 'none';
-              }}
             >
-              {t.emoji}
+              <span style={{ fontSize: '13px', lineHeight: 1 }}>
+                {t.emoji}
+              </span>
+              {isActive && (
+                <span
+                  style={{
+                    fontSize: '11px',
+                    fontWeight: 600,
+                    letterSpacing: '-0.01em',
+                  }}
+                >
+                  {t.label}
+                </span>
+              )}
             </button>
           );
         })}

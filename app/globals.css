@@ -9,6 +9,47 @@
   --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", system-ui, sans-serif;
   --font-mono: "SF Mono", Monaco, Menlo, "Courier New", monospace;
 
+  /* Typography Scale — Apple HIG */
+  --text-caption2: 11px;
+  --text-caption1: 12px;
+  --text-footnote: 13px;
+  --text-subheadline: 15px;
+  --text-body: 17px;
+  --text-title3: 20px;
+  --text-title2: 22px;
+  --text-title1: 28px;
+  --text-large-title: 34px;
+
+  /* Leading */
+  --leading-tight: 1.15;
+  --leading-snug: 1.3;
+  --leading-normal: 1.47;
+  --leading-relaxed: 1.65;
+
+  /* Tracking */
+  --tracking-tight: -0.41px;
+  --tracking-normal: -0.24px;
+  --tracking-wide: 0.07em;
+
+  /* Font Weights */
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+
+  /* Spacing Scale — 4px grid */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  /* Tailwind animation tokens */
   --animate-fade-in: fadeIn 0.2s ease-out;
   --animate-slide-in: slideIn 0.2s ease-out;
   --animate-pulse-red: pulse-red 1.5s ease-in-out infinite;
@@ -23,6 +64,8 @@
 /* DEFAULT: Dark (Apple Dark Mode) */
 :root, [data-theme="dark"] {
   --bg: #000000;
+  --bg-secondary: rgba(28,28,30,1);
+  --bg-tertiary: rgba(44,44,46,1);
   --material-regular: rgba(28,28,30,0.92);
   --material-thick: rgba(22,22,24,0.96);
   --material-thin: rgba(255,255,255,0.06);
@@ -44,10 +87,15 @@
   --system-red: #FF453A;
   --system-orange: #FF9F0A;
   --system-purple: #BF5AF2;
+  --inset-shine: inset 0 1px 0 rgba(255,255,255,0.08);
+  --shadow-subtle: 0 1px 2px rgba(0,0,0,0.20);
   --shadow-ambient: 0 0 0 0.5px rgba(0,0,0,0.20);
   --shadow-key: 0 4px 16px rgba(0,0,0,0.40);
   --shadow-card: 0 0 0 0.5px rgba(0,0,0,0.20), 0 4px 16px rgba(0,0,0,0.40), inset 0 1px 0 rgba(255,255,255,0.08);
   --shadow-overlay: 0 0 0 0.5px rgba(0,0,0,0.30), 0 16px 48px rgba(0,0,0,0.60), inset 0 1px 0 rgba(255,255,255,0.06);
+  --code-bg: rgba(255,255,255,0.06);
+  --code-border: rgba(255,255,255,0.10);
+  --code-text: #e5e5ea;
   --sidebar-bg: rgba(28,28,30,0.92);
   --sidebar-backdrop: blur(40px) saturate(180%);
   --radius-sm: 6px;
@@ -63,6 +111,8 @@
 /* GLASS: Frosted glass dark variant */
 [data-theme="glass"] {
   --bg: #0d0d18;
+  --bg-secondary: rgba(20,20,32,1);
+  --bg-tertiary: rgba(30,30,48,1);
   --material-regular: rgba(255,255,255,0.07);
   --material-thick: rgba(255,255,255,0.10);
   --material-thin: rgba(255,255,255,0.06);
@@ -84,10 +134,15 @@
   --system-red: #FF5C57;
   --system-orange: #FFB340;
   --system-purple: #CC6FF0;
+  --inset-shine: inset 0 1px 0 rgba(255,255,255,0.15);
+  --shadow-subtle: 0 1px 3px rgba(0,0,0,0.25);
   --shadow-ambient: 0 0 0 0.5px rgba(255,255,255,0.06);
   --shadow-key: 0 8px 32px rgba(0,0,0,0.45);
   --shadow-card: 0 0 0 0.5px rgba(255,255,255,0.06), 0 8px 32px rgba(0,0,0,0.40), inset 0 1px 0 rgba(255,255,255,0.15);
   --shadow-overlay: 0 0 0 0.5px rgba(255,255,255,0.08), 0 16px 56px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.12);
+  --code-bg: rgba(255,255,255,0.07);
+  --code-border: rgba(255,255,255,0.12);
+  --code-text: #e5e5ea;
   --sidebar-bg: rgba(255,255,255,0.05);
   --sidebar-backdrop: blur(40px) saturate(180%);
   --radius-sm: 6px;
@@ -103,6 +158,8 @@
 /* COLOR: Vibrant purple-indigo variant */
 [data-theme="color"] {
   --bg: #0a0814;
+  --bg-secondary: #16112a;
+  --bg-tertiary: #1e1838;
   --material-regular: #16112a;
   --material-thick: #1e1838;
   --material-thin: rgba(139,92,246,0.12);
@@ -124,10 +181,15 @@
   --system-red: #F87171;
   --system-orange: #FB923C;
   --system-purple: #C084FC;
+  --inset-shine: inset 0 1px 0 rgba(139,92,246,0.15);
+  --shadow-subtle: 0 1px 3px rgba(88,28,135,0.20);
   --shadow-ambient: 0 0 0 0.5px rgba(88,28,135,0.30);
   --shadow-key: 0 8px 32px rgba(88,28,135,0.40);
   --shadow-card: 0 0 0 0.5px rgba(88,28,135,0.25), 0 4px 24px rgba(88,28,135,0.30), inset 0 1px 0 rgba(139,92,246,0.15);
   --shadow-overlay: 0 0 0 0.5px rgba(88,28,135,0.30), 0 16px 48px rgba(88,28,135,0.45), inset 0 1px 0 rgba(139,92,246,0.12);
+  --code-bg: rgba(139,92,246,0.10);
+  --code-border: rgba(139,92,246,0.20);
+  --code-text: #ddd6fe;
   --sidebar-bg: #0f0b20;
   --sidebar-backdrop: blur(40px) saturate(200%);
   --radius-sm: 6px;
@@ -143,6 +205,8 @@
 /* LIGHT: Apple Light Mode */
 [data-theme="light"] {
   --bg: #f2f2f7;
+  --bg-secondary: #ffffff;
+  --bg-tertiary: #e5e5ea;
   --material-regular: #ffffff;
   --material-thick: rgba(255,255,255,0.97);
   --material-thin: rgba(0,0,0,0.03);
@@ -157,17 +221,22 @@
   --text-secondary: rgba(60,60,67,0.60);
   --text-tertiary: rgba(60,60,67,0.30);
   --text-quaternary: rgba(60,60,67,0.18);
-  --accent: #D4A017;
-  --accent-fill: rgba(212,160,23,0.12);
+  --accent: #B8860B;
+  --accent-fill: rgba(184,134,11,0.12);
   --system-blue: #007AFF;
   --system-green: #28CD41;
   --system-red: #FF3B30;
   --system-orange: #FF9500;
   --system-purple: #AF52DE;
+  --inset-shine: inset 0 1px 0 rgba(255,255,255,0.70);
+  --shadow-subtle: 0 1px 2px rgba(0,0,0,0.06);
   --shadow-ambient: 0 0 0 0.5px rgba(0,0,0,0.08);
-  --shadow-key: 0 2px 8px rgba(0,0,0,0.12);
-  --shadow-card: 0 0 0 0.5px rgba(0,0,0,0.08), 0 2px 8px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.70);
-  --shadow-overlay: 0 0 0 0.5px rgba(0,0,0,0.10), 0 8px 32px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.80);
+  --shadow-key: 0 2px 8px rgba(0,0,0,0.12), 0 8px 24px rgba(0,0,0,0.08);
+  --shadow-card: 0 0 0 0.5px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.70);
+  --shadow-overlay: 0 0 0 0.5px rgba(0,0,0,0.08), 0 4px 16px rgba(0,0,0,0.10), 0 16px 48px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.80);
+  --code-bg: rgba(0,0,0,0.04);
+  --code-border: rgba(0,0,0,0.08);
+  --code-text: #1c1c1e;
   --sidebar-bg: #ffffff;
   --sidebar-backdrop: blur(20px) saturate(150%);
   --radius-sm: 6px;
@@ -184,6 +253,8 @@
 @media (prefers-color-scheme: light) {
   [data-theme="system"] {
     --bg: #f2f2f7;
+    --bg-secondary: #ffffff;
+    --bg-tertiary: #e5e5ea;
     --material-regular: #ffffff;
     --material-thick: rgba(255,255,255,0.97);
     --material-thin: rgba(0,0,0,0.03);
@@ -198,17 +269,22 @@
     --text-secondary: rgba(60,60,67,0.60);
     --text-tertiary: rgba(60,60,67,0.30);
     --text-quaternary: rgba(60,60,67,0.18);
-    --accent: #D4A017;
-    --accent-fill: rgba(212,160,23,0.12);
+    --accent: #B8860B;
+    --accent-fill: rgba(184,134,11,0.12);
     --system-blue: #007AFF;
     --system-green: #28CD41;
     --system-red: #FF3B30;
     --system-orange: #FF9500;
     --system-purple: #AF52DE;
+    --inset-shine: inset 0 1px 0 rgba(255,255,255,0.70);
+    --shadow-subtle: 0 1px 2px rgba(0,0,0,0.06);
     --shadow-ambient: 0 0 0 0.5px rgba(0,0,0,0.08);
-    --shadow-key: 0 2px 8px rgba(0,0,0,0.12);
-    --shadow-card: 0 0 0 0.5px rgba(0,0,0,0.08), 0 2px 8px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.70);
-    --shadow-overlay: 0 0 0 0.5px rgba(0,0,0,0.10), 0 8px 32px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.80);
+    --shadow-key: 0 2px 8px rgba(0,0,0,0.12), 0 8px 24px rgba(0,0,0,0.08);
+    --shadow-card: 0 0 0 0.5px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.70);
+    --shadow-overlay: 0 0 0 0.5px rgba(0,0,0,0.08), 0 4px 16px rgba(0,0,0,0.10), 0 16px 48px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.80);
+    --code-bg: rgba(0,0,0,0.04);
+    --code-border: rgba(0,0,0,0.08);
+    --code-text: #1c1c1e;
     --sidebar-bg: #ffffff;
     --sidebar-backdrop: blur(20px) saturate(150%);
     --radius-sm: 6px;
@@ -235,6 +311,8 @@ body {
   background: var(--bg);
   color: var(--text-primary);
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", system-ui, sans-serif;
+  font-size: var(--text-body);
+  line-height: var(--leading-normal);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
@@ -293,6 +371,32 @@ body {
   50% { transform: translate(-3px, -3px); }
 }
 
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes scaleUp {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes fadeOut {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+/* Typing dots */
+@keyframes bounce-dot {
+  0%, 60%, 100% { transform: translateY(0); }
+  30% { transform: translateY(-4px); }
+}
+
 /* ============================================
    Utility Animation Classes
    ============================================ */
@@ -305,6 +409,107 @@ body {
 .animate-error-pulse { animation: pulse-red 1.5s ease-in-out infinite; }
 .animate-blink { animation: blink-cursor 1s step-end infinite; }
 .animate-float-hint { animation: float-hint 2s ease-in-out infinite; }
+
+/* New animation utilities */
+.animate-shimmer { animation: shimmer 1.5s ease-in-out infinite; background-size: 200% 100%; }
+.animate-slide-down { animation: slideDown 250ms var(--ease-smooth) forwards; }
+.animate-slide-up-enter { animation: slideUp 250ms var(--ease-smooth) forwards; }
+.animate-scale-up { animation: scaleUp 200ms var(--ease-spring) forwards; }
+.animate-fade-out { animation: fadeOut 150ms ease forwards; }
+
+/* ============================================
+   Interactive State Classes
+   ============================================ */
+
+/* Hover lift — card elevation on hover */
+.hover-lift {
+  transition: transform 200ms var(--ease-spring), box-shadow 200ms var(--ease-smooth);
+}
+.hover-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-key);
+}
+.hover-lift:active {
+  transform: translateY(0) scale(0.98);
+  transition-duration: 100ms;
+}
+
+/* Hover background — subtle fill on hover */
+.hover-bg {
+  transition: background-color 150ms var(--ease-smooth);
+}
+.hover-bg:hover {
+  background-color: var(--fill-secondary);
+}
+.hover-bg:active {
+  background-color: var(--fill-tertiary);
+}
+
+/* Button scale — tactile press */
+.btn-scale {
+  transition: transform 150ms var(--ease-spring), box-shadow 150ms var(--ease-smooth);
+}
+.btn-scale:hover {
+  transform: scale(0.98);
+}
+.btn-scale:active {
+  transform: scale(0.96);
+}
+
+/* Primary CTA — gold glow */
+.btn-primary {
+  background: var(--accent);
+  color: #000;
+  font-weight: var(--weight-semibold);
+  border: none;
+  cursor: pointer;
+  transition: all 150ms var(--ease-spring);
+}
+.btn-primary:hover {
+  transform: scale(0.98);
+  box-shadow: 0 0 24px rgba(245, 197, 24, 0.35);
+}
+.btn-primary:active {
+  transform: scale(0.96);
+}
+.btn-primary:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Ghost button */
+.btn-ghost {
+  background: transparent;
+  color: var(--text-secondary);
+  border: none;
+  cursor: pointer;
+  transition: all 150ms var(--ease-smooth);
+}
+.btn-ghost:hover {
+  background: var(--fill-secondary);
+  color: var(--text-primary);
+}
+
+/* Focus ring — keyboard only */
+.focus-ring:focus-visible {
+  outline: 2px solid var(--system-blue);
+  outline-offset: 2px;
+}
+
+/* Nav item */
+.nav-item {
+  transition: background-color 150ms var(--ease-smooth), color 150ms var(--ease-smooth);
+  border-radius: var(--radius-sm);
+}
+.nav-item:hover {
+  background: var(--fill-secondary);
+}
+.nav-item.active {
+  background: var(--fill-secondary);
+  color: var(--accent);
+}
 
 /* ============================================
    React Flow Overrides (theme-aware)
@@ -418,7 +623,7 @@ body {
 
 [data-theme="light"] .apple-card {
   background: #ffffff !important;
-  border: 1px solid rgba(60,60,67,0.15) !important;
+  border: 1px solid rgba(60,60,67,0.12) !important;
   box-shadow: var(--shadow-card) !important;
 }
 
@@ -437,7 +642,7 @@ body {
 .msg-user code { background: rgba(0,0,0,0.12) !important; color: #000 !important; }
 
 /* ============================================
-   Accessibility: Reduced Motion
+   Reduced Motion
    ============================================ */
 
 @media (prefers-reduced-motion: reduce) {
@@ -445,5 +650,6 @@ body {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

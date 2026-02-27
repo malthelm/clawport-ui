@@ -1,23 +1,42 @@
-"use client";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
-import { useTheme } from "@/app/providers";
+'use client';
 
-const NAV_ITEMS = [
-  { href: "/", icon: "🗺️", label: "Manor Map" },
-  { href: "/chat", icon: "💬", label: "Messages" },
-  { href: "/crons", icon: "⏰", label: "Cron Monitor" },
-  { href: "/memory", icon: "🧠", label: "Memory" },
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import { Map, MessageSquare, Clock, Brain } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
+import type { CronJob } from '@/lib/types';
+
+// ---------------------------------------------------------------------------
+// Nav item definition
+// ---------------------------------------------------------------------------
+
+interface NavItem {
+  href: string;
+  label: string;
+  icon: LucideIcon;
+  badge?: 'agents' | 'unread' | 'errors';
+}
+
+const NAV_ITEMS: NavItem[] = [
+  { href: '/', label: 'Map', icon: Map, badge: 'agents' },
+  { href: '/chat', label: 'Messages', icon: MessageSquare, badge: 'unread' },
+  { href: '/crons', label: 'Crons', icon: Clock, badge: 'errors' },
+  { href: '/memory', label: 'Memory', icon: Brain },
 ];
+
+// ---------------------------------------------------------------------------
+// NavLinks component
+// ---------------------------------------------------------------------------
 
 export function NavLinks() {
   const pathname = usePathname();
-  const { theme } = useTheme();
   const [agentCount, setAgentCount] = useState<number | null>(null);
+  const [cronErrorCount, setCronErrorCount] = useState<number | null>(null);
 
+  // Fetch agent count
   useEffect(() => {
-    fetch("/api/agents")
+    fetch('/api/agents')
       .then((r) => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         return r.json();
@@ -26,116 +45,130 @@ export function NavLinks() {
         if (Array.isArray(data)) {
           setAgentCount(data.length);
         }
-        // If the response is an error object, leave agentCount as null
-        // so the badge simply won't render.
       })
       .catch(() => {
-        // On failure, ensure we don't show a broken badge.
-        // agentCount stays null, so the count badge is hidden.
         setAgentCount(null);
       });
   }, []);
 
-  function getActiveStyle() {
-    if (theme === "light") {
-      return {
-        background: 'rgba(0,122,255,0.10)',
-        color: '#007AFF',
-        boxShadow: 'inset 2px 0 0 #007AFF',
-      };
+  // Fetch cron error count
+  useEffect(() => {
+    fetch('/api/crons')
+      .then((r) => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json();
+      })
+      .then((data: unknown) => {
+        if (Array.isArray(data)) {
+          const errors = (data as CronJob[]).filter((c) => c.status === 'error');
+          setCronErrorCount(errors.length);
+        }
+      })
+      .catch(() => {
+        setCronErrorCount(null);
+      });
+  }, []);
+
+  // Resolve badge content per nav item
+  function getBadge(item: NavItem): React.ReactNode {
+    if (item.badge === 'agents' && agentCount !== null) {
+      return (
+        <span
+          className="nav-badge"
+          style={{
+            marginLeft: 'auto',
+            fontSize: '10px',
+            fontFamily: 'var(--font-mono)',
+            padding: '1px 6px',
+            borderRadius: 'var(--radius-sm)',
+            background: 'var(--fill-quaternary)',
+            color: 'var(--text-tertiary)',
+            lineHeight: '16px',
+          }}
+        >
+          {agentCount}
+        </span>
+      );
     }
-    if (theme === "color") {
-      return {
-        background: 'rgba(139,92,246,0.18)',
-        color: '#C084FC',
-        boxShadow: 'inset 2px 0 0 #C084FC',
-      };
+    if (item.badge === 'errors' && cronErrorCount !== null && cronErrorCount > 0) {
+      return (
+        <span
+          className="nav-badge-error"
+          aria-label={`${cronErrorCount} cron error${cronErrorCount > 1 ? 's' : ''}`}
+          style={{
+            marginLeft: 'auto',
+            width: '8px',
+            height: '8px',
+            borderRadius: '50%',
+            background: 'var(--system-red)',
+            flexShrink: 0,
+            animation: 'pulse-red 1.5s ease-in-out infinite',
+          }}
+        />
+      );
     }
-    return {
-      background: 'rgba(255,255,255,0.12)',
-      color: '#FFFFFF',
-      boxShadow: 'inset 2px 0 0 var(--accent)',
-    };
+    return null;
   }
 
   return (
-    <nav className="flex-1 flex flex-col">
+    <nav className="flex-1 flex flex-col" aria-label="Main navigation">
       <div className="px-3 pt-2 pb-3">
         {/* Section header */}
-        <div style={{
-          fontSize: '11px',
-          fontWeight: 600,
-          letterSpacing: '0.06em',
-          color: 'var(--text-tertiary)',
-          textTransform: 'uppercase' as const,
-          padding: '0 8px',
-          marginBottom: '4px',
-        }}>
-          WORKSPACE
+        <div
+          style={{
+            fontSize: '11px',
+            fontWeight: 600,
+            letterSpacing: '0.06em',
+            color: 'var(--text-tertiary)',
+            textTransform: 'uppercase',
+            padding: '0 8px',
+            marginBottom: '4px',
+          }}
+        >
+          Workspace
         </div>
 
         <div className="flex flex-col gap-0.5">
           {NAV_ITEMS.map((item) => {
             const isActive =
-              item.href === "/"
-                ? pathname === "/"
+              item.href === '/'
+                ? pathname === '/'
                 : pathname.startsWith(item.href);
+
+            const Icon = item.icon;
 
             return (
               <Link
                 key={item.href}
                 href={item.href}
-                className="flex items-center gap-2.5 no-underline"
+                className={`nav-item focus-ring ${isActive ? 'nav-item-active' : ''}`}
                 aria-label={item.label}
-                aria-current={isActive ? "page" : undefined}
+                aria-current={isActive ? 'page' : undefined}
                 style={{
-                  height: '34px',
-                  padding: '0 8px 0 12px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                  minHeight: '44px',
+                  padding: '0 10px 0 12px',
                   borderRadius: '8px',
                   fontSize: '13px',
                   fontWeight: isActive ? 600 : 500,
-                  color: isActive ? getActiveStyle().color : 'var(--text-secondary)',
-                  background: isActive ? getActiveStyle().background : 'transparent',
-                  boxShadow: isActive ? getActiveStyle().boxShadow : 'none',
-                  transition: 'all 100ms var(--ease-spring)',
+                  color: isActive ? 'var(--accent)' : 'var(--text-secondary)',
+                  background: isActive ? 'var(--accent-fill)' : 'transparent',
                   textDecoration: 'none',
-                }}
-                onMouseEnter={(e) => {
-                  if (!isActive) {
-                    e.currentTarget.style.background = 'var(--material-ultra-thin)';
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (!isActive) {
-                    e.currentTarget.style.background = 'transparent';
-                  }
+                  transition: 'all 100ms var(--ease-smooth)',
                 }}
               >
-                <span style={{
-                  width: '20px',
-                  height: '20px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '14px',
-                  flexShrink: 0,
-                }}>
-                  {item.icon}
-                </span>
-                <span>{item.label}</span>
-                {item.href === "/" && agentCount !== null && (
-                  <span style={{
-                    marginLeft: 'auto',
-                    fontSize: '10px',
-                    fontFamily: 'var(--font-mono)',
-                    padding: '1px 6px',
-                    borderRadius: 'var(--radius-sm)',
-                    background: 'var(--fill-quaternary)',
-                    color: 'var(--text-tertiary)',
-                  }}>
-                    {agentCount}
-                  </span>
-                )}
+                <Icon
+                  size={18}
+                  style={{
+                    flexShrink: 0,
+                    color: isActive ? 'var(--accent)' : 'var(--text-tertiary)',
+                    transition: 'color 100ms var(--ease-smooth)',
+                  }}
+                />
+                <span style={{ flex: 1 }}>{item.label}</span>
+                {getBadge(item)}
               </Link>
             );
           })}
@@ -145,41 +178,50 @@ export function NavLinks() {
       <div className="flex-1" />
 
       {/* User footer */}
-      <div style={{
-        borderTop: '1px solid var(--separator)',
-        padding: '10px 16px',
-      }}>
+      <div
+        style={{
+          borderTop: '1px solid var(--separator)',
+          padding: '10px 16px',
+        }}
+      >
         <div className="flex items-center gap-2.5">
-          <div style={{
-            width: '28px',
-            height: '28px',
-            borderRadius: '7px',
-            background: 'var(--fill-primary)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '12px',
-            fontWeight: 600,
-            color: 'var(--text-secondary)',
-            flexShrink: 0,
-          }}>
+          <div
+            style={{
+              width: '28px',
+              height: '28px',
+              borderRadius: '7px',
+              background: 'var(--accent-fill)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '11px',
+              fontWeight: 700,
+              color: 'var(--accent)',
+              flexShrink: 0,
+              letterSpacing: '-0.02em',
+            }}
+          >
             JR
           </div>
           <div style={{ minWidth: 0 }}>
-            <div style={{
-              fontSize: '13px',
-              fontWeight: 500,
-              color: 'var(--text-primary)',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-            }}>
+            <div
+              style={{
+                fontSize: '13px',
+                fontWeight: 500,
+                color: 'var(--text-primary)',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+              }}
+            >
               John Rice
             </div>
-            <div style={{
-              fontSize: '11px',
-              color: 'var(--text-tertiary)',
-            }}>
+            <div
+              style={{
+                fontSize: '11px',
+                color: 'var(--text-tertiary)',
+              }}
+            >
               Owner
             </div>
           </div>
