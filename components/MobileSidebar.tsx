@@ -53,7 +53,7 @@ export function MobileSidebar({
     <>
       {/* Mobile header bar */}
       <header
-        className="md:hidden"
+        className="flex md:hidden items-center"
         style={{
           position: 'fixed',
           top: 0,
@@ -61,8 +61,6 @@ export function MobileSidebar({
           right: 0,
           zIndex: 60,
           height: '48px',
-          display: 'flex',
-          alignItems: 'center',
           gap: '12px',
           padding: '0 12px',
           background: 'var(--sidebar-bg)',
@@ -126,7 +124,7 @@ export function MobileSidebar({
 
       {/* Backdrop */}
       <div
-        className="md:hidden"
+        className="block md:hidden"
         style={{
           position: 'fixed',
           inset: 0,
@@ -144,7 +142,7 @@ export function MobileSidebar({
 
       {/* Slide-out sidebar panel */}
       <aside
-        className="md:hidden"
+        className="flex md:hidden flex-col"
         style={{
           position: 'fixed',
           top: 0,
@@ -152,8 +150,6 @@ export function MobileSidebar({
           bottom: 0,
           zIndex: 55,
           width: '280px',
-          display: 'flex',
-          flexDirection: 'column',
           background: 'var(--sidebar-bg)',
           backdropFilter: 'var(--sidebar-backdrop)',
           WebkitBackdropFilter: 'var(--sidebar-backdrop)',

@@ -22,11 +22,10 @@ export function Sidebar() {
     <>
       {/* Desktop sidebar — hidden on mobile */}
       <aside
-        className="hidden md:flex"
+        className="hidden md:flex md:flex-col"
         style={{
           width: '220px',
           flexShrink: 0,
-          flexDirection: 'column',
           background: 'var(--sidebar-bg)',
           backdropFilter: 'blur(40px) saturate(180%)',
           WebkitBackdropFilter: 'blur(40px) saturate(180%)',

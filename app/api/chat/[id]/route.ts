@@ -51,10 +51,14 @@ export async function POST(
     ? `${agent.soul}\n\nYou are speaking directly with John, your operator. Stay fully in character. Be concise — this is a live chat. 2-4 sentences unless detail is asked for. No em dashes.`
     : `You are ${agent.name}, ${agent.title}. Respond in character. Be concise. No em dashes.`
 
-  // When messages contain images, use the OpenClaw gateway's chat.send pipeline
-  // (same path Discord/Telegram use) — supports image attachments natively.
-  if (hasImageContent(messages) && GATEWAY_TOKEN) {
-    const attachments = extractImageAttachments(messages)
+  // When the LATEST user message contains images, use the OpenClaw gateway's
+  // chat.send pipeline. Only check the last message — older messages with images
+  // should not force all future messages through this path.
+  const lastUserMsg = [...messages].reverse().find(m => m.role === 'user')
+  const latestHasImages = lastUserMsg ? hasImageContent([lastUserMsg]) : false
+
+  if (latestHasImages && GATEWAY_TOKEN) {
+    const attachments = extractImageAttachments([lastUserMsg!])
     const textPrompt = buildTextPrompt(systemPrompt, messages)
 
     const response = await sendViaOpenClaw({

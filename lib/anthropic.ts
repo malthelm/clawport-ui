@@ -2,12 +2,13 @@
  * OpenClaw gateway integration for vision (image) messages.
  *
  * The gateway's /v1/chat/completions endpoint strips image_url content parts.
- * Images work through the WebSocket agent pipeline (chat.send), which is the
- * same path Discord/Telegram/etc use. We connect directly via WebSocket.
+ * Images work through the agent pipeline (chat.send), which is the same path
+ * Discord/Telegram/etc use. We invoke the CLI directly via execFile.
  *
- * Flow: extract images as attachments → WS chat.send → wait for response → return
+ * Flow: extract images as attachments → CLI chat.send → parse response → return
  */
 
+import { execFile } from 'child_process'
 import type { ApiMessage, ContentPart } from './validation'
 
 export interface OpenClawAttachment {
@@ -78,139 +79,109 @@ export function buildTextPrompt(systemPrompt: string, messages: ApiMessage[]): s
 }
 
 /**
- * Send a vision message through the OpenClaw gateway via WebSocket.
- * Connects to the gateway, sends chat.send with image attachments,
- * and waits for the agent's response.
+ * Send a vision message through the OpenClaw gateway via CLI (execFile).
+ * Runs `openclaw gateway call chat.send --params <json> --expect-final`.
+ *
+ * Images must be resized client-side to fit within the OS argument size limit.
  *
  * Returns the assistant's response text, or null on failure.
  */
 export async function sendViaOpenClaw(opts: {
-  gatewayUrl?: string
   gatewayToken: string
   message: string
   attachments: OpenClawAttachment[]
   sessionKey?: string
   timeoutMs?: number
 }): Promise<string | null> {
-  const wsUrl = opts.gatewayUrl || 'ws://127.0.0.1:18789'
+  const openclawBin = process.env.OPENCLAW_BIN || 'openclaw'
   const sessionKey = opts.sessionKey || 'agent:main:manor-ui'
   const idempotencyKey = `manor-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
   const timeoutMs = opts.timeoutMs || 60000
 
+  const params = JSON.stringify({
+    sessionKey,
+    idempotencyKey,
+    message: opts.message,
+    attachments: opts.attachments,
+  })
+
   return new Promise<string | null>((resolve) => {
-    const timer = setTimeout(() => {
-      try { ws.close() } catch { /* ignore */ }
-      resolve(null)
-    }, timeoutMs)
+    const args = [
+      'gateway', 'call', 'chat.send',
+      '--params', params,
+      '--expect-final',
+      '--timeout', String(timeoutMs),
+      '--token', opts.gatewayToken,
+      '--json',
+    ]
 
-    const ws = new WebSocket(wsUrl)
-
-    ws.onopen = () => {
-      // Authenticate
-      ws.send(JSON.stringify({
-        type: 'auth',
-        token: opts.gatewayToken,
-      }))
-    }
-
-    let authenticated = false
-    let sendAcked = false
-
-    ws.onmessage = (event: MessageEvent) => {
-      try {
-        const data = JSON.parse(typeof event.data === 'string' ? event.data : event.data.toString())
-
-        // Handle auth response
-        if (!authenticated && (data.type === 'auth_ok' || data.type === 'welcome' || data.authenticated)) {
-          authenticated = true
-          // Send the chat.send request
-          ws.send(JSON.stringify({
-            type: 'call',
-            method: 'chat.send',
-            params: {
-              sessionKey,
-              idempotencyKey,
-              message: opts.message,
-              attachments: opts.attachments,
-            },
-          }))
-          return
-        }
-
-        // Handle chat.send ack
-        if (data.method === 'chat.send' || data.type === 'result') {
-          sendAcked = true
-          // Now wait for the agent response via chat events
-          return
-        }
-
-        // Handle agent response — look for assistant message in chat events
-        if (sendAcked) {
-          // The gateway emits chat events as the agent responds
-          const content = extractResponseContent(data)
-          if (content) {
-            clearTimeout(timer)
-            try { ws.close() } catch { /* ignore */ }
-            resolve(content)
-            return
-          }
-        }
-      } catch {
-        // Skip unparseable messages
+    execFile(openclawBin, args, { timeout: timeoutMs + 5000, maxBuffer: 10 * 1024 * 1024 }, (err, stdout, stderr) => {
+      if (err) {
+        console.error('sendViaOpenClaw execFile error:', err.message)
+        if (stderr) console.error('stderr:', stderr)
+        resolve(null)
+        return
       }
-    }
 
-    ws.onerror = () => {
-      clearTimeout(timer)
-      resolve(null)
-    }
-
-    ws.onclose = () => {
-      clearTimeout(timer)
-      // If we haven't resolved yet, resolve with null
-      resolve(null)
-    }
+      try {
+        const result = JSON.parse(stdout)
+        const content = extractCliResponse(result)
+        resolve(content)
+      } catch {
+        // stdout might be plain text response
+        const trimmed = stdout.trim()
+        if (trimmed) {
+          resolve(trimmed)
+        } else {
+          console.error('sendViaOpenClaw: empty response')
+          resolve(null)
+        }
+      }
+    })
   })
 }
 
 /**
- * Try to extract the assistant's response content from a gateway WebSocket message.
- * The gateway can emit responses in several formats depending on the event type.
+ * Extract the assistant's response from the CLI JSON output.
+ * The CLI can return responses in several formats.
  */
-function extractResponseContent(data: Record<string, unknown>): string | null {
+function extractCliResponse(data: Record<string, unknown>): string | null {
   // Direct content field
-  if (typeof data.content === 'string' && data.content && data.role === 'assistant') {
+  if (typeof data.content === 'string' && data.content) {
     return data.content
   }
 
-  // Nested in result
+  // Response text field
+  if (typeof data.text === 'string' && data.text) {
+    return data.text
+  }
+
+  // Reply field
+  if (typeof data.reply === 'string' && data.reply) {
+    return data.reply
+  }
+
+  // Nested in result/payload
   if (data.result && typeof data.result === 'object') {
     const result = data.result as Record<string, unknown>
-    if (typeof result.content === 'string' && result.content) {
-      return result.content
-    }
-    // Message wrapper
+    if (typeof result.content === 'string' && result.content) return result.content
+    if (typeof result.text === 'string' && result.text) return result.text
     if (result.message && typeof result.message === 'object') {
       const msg = result.message as Record<string, unknown>
-      if (typeof msg.content === 'string' && msg.content) {
-        return msg.content
-      }
+      if (typeof msg.content === 'string' && msg.content) return msg.content
     }
   }
 
-  // Chat event with message
-  if (data.type === 'chat' && data.message && typeof data.message === 'object') {
+  if (data.payload && typeof data.payload === 'object') {
+    const payload = data.payload as Record<string, unknown>
+    if (typeof payload.content === 'string' && payload.content) return payload.content
+    if (typeof payload.text === 'string' && payload.text) return payload.text
+  }
+
+  // ok: true with message
+  if (data.ok && data.message && typeof data.message === 'object') {
     const msg = data.message as Record<string, unknown>
-    if (msg.role === 'assistant' && typeof msg.content === 'string' && msg.content) {
-      return msg.content
-    }
-  }
-
-  // Agent turn complete
-  if (data.type === 'agent_turn_complete' || data.type === 'turn_complete') {
-    if (typeof data.reply === 'string' && data.reply) return data.reply
-    if (typeof data.text === 'string' && data.text) return data.text
-    if (typeof data.content === 'string' && data.content) return data.content
+    if (typeof msg.content === 'string' && msg.content) return msg.content
   }
 
   return null

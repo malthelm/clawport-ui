@@ -92,11 +92,9 @@ function MessengerApp() {
 
       {/* Mobile agent list — shown when no conversation selected */}
       <div
-        className="md:hidden"
+        className={`md:hidden ${mobileShowConversation ? 'hidden' : 'flex flex-col'}`}
         style={{
-          display: mobileShowConversation ? 'none' : 'flex',
           flex: 1,
-          flexDirection: 'column',
           height: '100%',
         }}
       >
@@ -110,8 +108,8 @@ function MessengerApp() {
 
       {/* Desktop conversation view — visible when agent selected on md+ */}
       <div
-        className="hidden md:flex"
-        style={{ flex: 1, flexDirection: 'column', height: '100%' }}
+        className="hidden md:flex md:flex-col"
+        style={{ flex: 1, height: '100%' }}
       >
         {activeAgent && conversations[activeAgent.id] ? (
           <ConversationView
@@ -128,13 +126,11 @@ function MessengerApp() {
       {/* Mobile conversation view — shown full width when agent selected */}
       {mobileShowConversation && activeAgent && conversations[activeAgent.id] && (
         <div
-          className="md:hidden"
+          className="flex flex-col md:hidden"
           style={{
             position: 'fixed',
             inset: 0,
             zIndex: 20,
-            display: 'flex',
-            flexDirection: 'column',
             background: 'var(--bg)',
           }}
         >

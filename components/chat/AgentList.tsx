@@ -33,11 +33,10 @@ export function AgentList({ agents, conversations, activeId, onSelect, loading }
 
   return (
     <div
-      className="hidden md:flex"
+      className="hidden md:flex md:flex-col"
       style={{
         width: 300,
         flexShrink: 0,
-        flexDirection: 'column',
         background: 'var(--sidebar-bg)',
         backdropFilter: 'var(--sidebar-backdrop)',
         WebkitBackdropFilter: 'var(--sidebar-backdrop)',
