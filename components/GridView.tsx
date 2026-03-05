@@ -1,6 +1,7 @@
 "use client"
 
 import type { Agent, CronJob } from "@/lib/types"
+import { buildTeams } from "@/lib/teams"
 import { AgentAvatar } from "@/components/AgentAvatar"
 
 interface GridViewProps {
@@ -16,45 +17,6 @@ function worstStatus(statuses: CronJob["status"][]): CronJob["status"] {
   return "idle"
 }
 
-interface Team {
-  manager: Agent
-  members: Agent[]
-}
-
-function buildTeams(agents: Agent[]): { jarvis: Agent | null; teams: Team[]; soloOps: Agent[] } {
-  const jarvis = agents.find((a) => a.reportsTo === null) ?? null
-  if (!jarvis) return { jarvis: null, teams: [], soloOps: [] }
-
-  const byId = new Map(agents.map((a) => [a.id, a]))
-  const teamManagers: Agent[] = []
-  const soloOps: Agent[] = []
-
-  for (const rid of jarvis.directReports) {
-    const r = byId.get(rid)
-    if (!r) continue
-    if (r.directReports.length > 0) {
-      teamManagers.push(r)
-    } else {
-      soloOps.push(r)
-    }
-  }
-
-  const teams: Team[] = teamManagers.map((mgr) => {
-    const members: Agent[] = []
-    const queue = [...mgr.directReports]
-    while (queue.length > 0) {
-      const id = queue.shift()!
-      const a = byId.get(id)
-      if (a) {
-        members.push(a)
-        queue.push(...a.directReports)
-      }
-    }
-    return { manager: mgr, members }
-  })
-
-  return { jarvis, teams, soloOps }
-}
 
 function AgentCard({
   agent,
@@ -269,7 +231,7 @@ function TeamSection({
 }
 
 export function GridView({ agents, crons, selectedId, onSelect }: GridViewProps) {
-  const { jarvis, teams, soloOps } = buildTeams(agents)
+  const { root, teams, soloOps } = buildTeams(agents)
 
   const totalCrons = crons.length
   const healthyCrons = crons.filter((c) => c.status === "ok").length
@@ -286,10 +248,10 @@ export function GridView({ agents, crons, selectedId, onSelect }: GridViewProps)
       }}
     >
       {/* Jarvis hero banner */}
-      {jarvis && (
+      {root && (
         <button
           className="hover-lift focus-ring"
-          onClick={() => onSelect(jarvis)}
+          onClick={() => onSelect(root)}
           style={{
             display: "flex",
             alignItems: "center",
@@ -297,28 +259,28 @@ export function GridView({ agents, crons, selectedId, onSelect }: GridViewProps)
             width: "100%",
             padding: "var(--space-5) var(--space-6)",
             borderRadius: "var(--radius-xl)",
-            background: `linear-gradient(135deg, var(--material-regular) 0%, ${jarvis.color}08 100%)`,
-            border: selectedId === jarvis.id
-              ? `1.5px solid ${jarvis.color}`
+            background: `linear-gradient(135deg, var(--material-regular) 0%, ${root.color}08 100%)`,
+            border: selectedId === root.id
+              ? `1.5px solid ${root.color}`
               : "1px solid var(--separator)",
             cursor: "pointer",
             textAlign: "left",
             marginBottom: "var(--space-6)",
             transition: "all 150ms var(--ease-spring)",
-            boxShadow: selectedId === jarvis.id
-              ? `0 0 0 1px ${jarvis.color}40, 0 8px 32px ${jarvis.color}12`
+            boxShadow: selectedId === root.id
+              ? `0 0 0 1px ${root.color}40, 0 8px 32px ${root.color}12`
               : "var(--shadow-card)",
             position: "relative",
             overflow: "hidden",
           }}
         >
           <AgentAvatar
-            agent={jarvis}
+            agent={root}
             size={64}
             borderRadius={18}
             style={{
-              border: `1.5px solid ${jarvis.color}50`,
-              boxShadow: `0 4px 20px ${jarvis.color}20`,
+              border: `1.5px solid ${root.color}50`,
+              boxShadow: `0 4px 20px ${root.color}20`,
             }}
           />
           <div style={{ flex: 1, minWidth: 0 }}>
@@ -331,19 +293,19 @@ export function GridView({ agents, crons, selectedId, onSelect }: GridViewProps)
                 lineHeight: "var(--leading-tight)",
               }}
             >
-              {jarvis.name}
+              {root.name}
             </div>
             <div
               style={{
                 fontSize: "var(--text-subheadline)",
-                color: jarvis.color,
+                color: root.color,
                 opacity: 0.85,
                 marginTop: 2,
               }}
             >
-              {jarvis.title}
+              {root.title}
             </div>
-            {jarvis.description && (
+            {root.description && (
               <div
                 style={{
                   fontSize: "var(--text-caption1)",
@@ -351,7 +313,7 @@ export function GridView({ agents, crons, selectedId, onSelect }: GridViewProps)
                   marginTop: "var(--space-1)",
                 }}
               >
-                {jarvis.description}
+                {root.description}
               </div>
             )}
           </div>

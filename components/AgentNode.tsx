@@ -10,6 +10,8 @@ export function AgentNode({ data, selected }: NodeProps) {
   const hasCrons = agent.crons && agent.crons.length > 0
   const hasErrors = hasCrons && agent.crons.some((c: CronJob) => c.status === "error")
   const cronCount = hasCrons ? agent.crons.length : 0
+  const toolCount = agent.tools?.length ?? 0
+  const reportCount = agent.directReports?.length ?? 0
 
   return (
     <div
@@ -25,14 +27,13 @@ export function AgentNode({ data, selected }: NodeProps) {
         borderBottom: `1px solid ${selected ? "var(--accent)" : "var(--separator)"}`,
         borderLeft: `1px solid ${selected ? "var(--accent)" : "var(--separator)"}`,
         padding: "var(--space-3) var(--space-4)",
-        minWidth: 200,
-        maxWidth: 220,
+        width: 260,
         cursor: "pointer",
         position: "relative",
         boxShadow: selected ? "0 0 0 1px var(--accent), var(--shadow-card)" : "var(--shadow-card)",
       }}
     >
-      {/* Emoji + Name row */}
+      {/* Emoji + Name + Title row */}
       <div
         style={{
           display: "flex",
@@ -42,75 +43,119 @@ export function AgentNode({ data, selected }: NodeProps) {
         }}
       >
         <AgentAvatar agent={agent} size={30} borderRadius={8} />
-        <div
-          style={{
-            fontSize: "var(--text-body)",
-            fontWeight: "var(--weight-semibold)",
-            color: "var(--text-primary)",
-            whiteSpace: "nowrap",
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-          }}
-        >
-          {agent.name}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div
+            style={{
+              fontSize: "var(--text-body)",
+              fontWeight: "var(--weight-semibold)",
+              color: "var(--text-primary)",
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              lineHeight: "var(--leading-tight)",
+            }}
+          >
+            {agent.name}
+          </div>
+          <div
+            style={{
+              fontSize: "var(--text-caption2)",
+              color: agent.color,
+              opacity: 0.85,
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              marginTop: 1,
+            }}
+          >
+            {agent.title}
+          </div>
         </div>
       </div>
 
-      {/* Title */}
-      <div
-        style={{
-          fontSize: "var(--text-caption1)",
-          color: "var(--text-secondary)",
-          whiteSpace: "nowrap",
-          overflow: "hidden",
-          textOverflow: "ellipsis",
-          marginTop: 1,
-        }}
-      >
-        {agent.title}
-      </div>
-
-      {/* Description snippet */}
+      {/* Description — allow 2 lines */}
       {agent.description && (
         <div
           style={{
             fontSize: "var(--text-caption2)",
+            lineHeight: 1.4,
             color: "var(--text-tertiary)",
-            whiteSpace: "nowrap",
+            marginTop: "var(--space-1)",
+            display: "-webkit-box",
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: "vertical",
             overflow: "hidden",
-            textOverflow: "ellipsis",
-            marginTop: 2,
           }}
         >
           {agent.description}
         </div>
       )}
 
-      {/* Cron health row */}
-      {hasCrons && (
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 4,
-            marginTop: "var(--space-2)",
-            fontSize: "var(--text-caption2)",
-            color: hasErrors ? "var(--system-red)" : "var(--system-green)",
-          }}
-        >
-          <div
-            className={hasErrors ? "animate-error-pulse" : ""}
+      {/* Stats row */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "var(--space-2)",
+          marginTop: "var(--space-2)",
+          flexWrap: "wrap",
+        }}
+      >
+        {toolCount > 0 && (
+          <span
             style={{
-              width: 6,
-              height: 6,
-              borderRadius: "50%",
-              background: hasErrors ? "var(--system-red)" : "var(--system-green)",
-              flexShrink: 0,
+              fontSize: "var(--text-caption2)",
+              fontWeight: "var(--weight-medium)",
+              color: "var(--text-quaternary)",
+              background: "var(--fill-quaternary)",
+              padding: "1px 7px",
+              borderRadius: 10,
             }}
-          />
-          {cronCount} cron{cronCount !== 1 ? "s" : ""} · {hasErrors ? "errors" : "healthy"}
-        </div>
-      )}
+          >
+            {toolCount} tools
+          </span>
+        )}
+        {reportCount > 0 && (
+          <span
+            style={{
+              fontSize: "var(--text-caption2)",
+              fontWeight: "var(--weight-medium)",
+              color: "var(--text-quaternary)",
+              background: "var(--fill-quaternary)",
+              padding: "1px 7px",
+              borderRadius: 10,
+            }}
+          >
+            {reportCount} reports
+          </span>
+        )}
+        {hasCrons && (
+          <span
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 4,
+              fontSize: "var(--text-caption2)",
+              fontWeight: "var(--weight-medium)",
+              color: hasErrors ? "var(--system-red)" : "var(--system-green)",
+              background: hasErrors ? "var(--system-red)10" : "var(--system-green)10",
+              padding: "1px 7px",
+              borderRadius: 10,
+            }}
+          >
+            <span
+              className={hasErrors ? "animate-error-pulse" : ""}
+              style={{
+                width: 5,
+                height: 5,
+                borderRadius: "50%",
+                background: hasErrors ? "var(--system-red)" : "var(--system-green)",
+              }}
+            />
+            {cronCount} cron{cronCount !== 1 ? "s" : ""}
+          </span>
+        )}
+      </div>
 
       {/* Handles - invisible */}
       <Handle type="target" position={Position.Top} style={{ opacity: 0 }} />
@@ -119,4 +164,36 @@ export function AgentNode({ data, selected }: NodeProps) {
   )
 }
 
-export const nodeTypes = { agentNode: AgentNode }
+function TeamGroupNode({ data }: NodeProps) {
+  const { label, color } = data as { label: string; color?: string } & Record<string, unknown>
+  return (
+    <div
+      style={{
+        width: "100%",
+        height: "100%",
+        position: "relative",
+      }}
+    >
+      <div
+        style={{
+          position: "absolute",
+          top: 10,
+          left: 0,
+          right: 0,
+          textAlign: "center",
+          fontSize: "var(--text-caption2)",
+          fontWeight: "var(--weight-semibold)",
+          letterSpacing: "var(--tracking-wide)",
+          textTransform: "uppercase",
+          color: color ?? "var(--text-tertiary)",
+          userSelect: "none",
+          pointerEvents: "none",
+        }}
+      >
+        {label}
+      </div>
+    </div>
+  )
+}
+
+export const nodeTypes = { agentNode: AgentNode, teamGroup: TeamGroupNode }
