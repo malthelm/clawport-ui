@@ -27,7 +27,7 @@ The CLI resolves its own package root via `import.meta.url`, so all commands wor
 
 ## Project Overview
 
-ClawPort is a Next.js 16 dashboard for managing OpenClaw AI agents. It provides an org chart (Org Map), direct agent chat with multimodal support, cron monitoring, an activity console with live log streaming, and memory browsing. All AI calls route through the OpenClaw gateway -- no separate API keys needed.
+ClawPort is a Next.js 16 dashboard for managing OpenClaw AI agents. It provides an org chart (Org Map), direct agent chat with multimodal support, cron monitoring, a cost dashboard, an activity console with live log streaming, and memory browsing. All AI calls route through the OpenClaw gateway -- no separate API keys needed.
 
 ## Tech Stack
 
@@ -126,6 +126,27 @@ Key files: `lib/audio-recorder.ts`, `lib/transcribe.ts`, `components/chat/VoiceM
 
 Messages stored in localStorage as JSON. Media attachments are base64 data URLs (not blob URLs -- those don't survive reload). The `conversations.ts` module provides `addMessage()`, `updateLastMessage()`, and `parseMedia()`.
 
+### Cost Dashboard
+
+The Cost Dashboard (`app/costs/page.tsx`) provides token usage and cost analysis derived from cron run data:
+
+```
+GET /api/costs
+  -> getCronRuns() (lib/cron-runs.ts) reads run history from workspace
+  -> computeCostSummary() (lib/costs.ts) transforms runs into:
+     - Per-run costs (model pricing lookup)
+     - Per-job aggregation (total + median cost)
+     - Daily cost timeline
+     - Model breakdown (token distribution)
+     - Anomaly detection (runs >5x median tokens)
+     - Week-over-week comparison
+     - Cache savings estimation
+```
+
+**Key files:** `lib/costs.ts` (all computation, 21 tests), `components/costs/CostsPage.tsx` (UI with daily bar chart, job table, model breakdown, anomaly alerts)
+
+**Pricing:** Built-in table for Claude model variants (Opus, Sonnet, Haiku). Falls back to Sonnet pricing for unknown models. Prefix matching handles versioned model IDs.
+
 ### Activity Console & Live Stream
 
 The Activity page (`app/activity/page.tsx`) shows a log browser for historical cron and config events. Live streaming is handled by a global floating widget:
@@ -183,6 +204,7 @@ Used by: `lib/memory.ts`, `lib/cron-runs.ts`, `lib/kanban/chat-store.ts`, `lib/c
 | `/api/chat/[id]` | POST | Agent chat -- text (streaming) or vision (send+poll) |
 | `/api/crons` | GET | Cron jobs via `openclaw cron list --json` |
 | `/api/memory` | GET | Memory dashboard: files, config, status, stats |
+| `/api/costs` | GET | Cost summary computed from cron run token usage |
 | `/api/logs` | GET | Historical log entries (cron runs + config audit) |
 | `/api/logs/stream` | GET | SSE stream of live logs via `openclaw logs --follow --json` |
 | `/api/tts` | POST | Text-to-speech via OpenClaw |

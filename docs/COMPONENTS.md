@@ -50,6 +50,8 @@ RootLayout (app/layout.tsx)
         CronsPage (app/crons/page.tsx)
           WeeklySchedule (components/crons/WeeklySchedule.tsx)
           PipelineGraph (components/crons/PipelineGraph.tsx)
+        CostsPage (app/costs/page.tsx)
+          CostsPage (components/costs/CostsPage.tsx)
         ActivityPage (app/activity/page.tsx)
           LogBrowser (components/activity/LogBrowser.tsx)
         MemoryPage (app/memory/page.tsx)
@@ -844,6 +846,31 @@ interface AgentNodeData {
 - Uses `ReactFlow` with `fitView` and pan/zoom controls
 
 **Used by:** `app/crons/page.tsx` (pipelines tab)
+
+---
+
+## Cost Components
+
+### CostsPage
+
+**File:** `components/costs/CostsPage.tsx`
+**Purpose:** Full cost dashboard with token usage analysis, daily cost chart, per-job breakdown, model distribution, anomaly detection, and week-over-week trends.
+
+**Key state:**
+- `summary` (useState) -- `CostSummary` fetched from `/api/costs`
+- `crons` (useState) -- `CronJob[]` for job name resolution
+- `hover` (useState) -- chart hover state for daily cost bars
+
+**Implementation:**
+- Fetches cost data from `/api/costs` (computed from cron run token usage)
+- Summary cards: total cost, top spender, week-over-week change (with trend arrows), cache savings
+- Daily cost bar chart (SVG) with hover tooltips
+- Per-job cost table sorted by total cost descending
+- Model breakdown showing token distribution percentages
+- Anomaly alerts for runs exceeding 5x median token usage
+- All cost computation in `lib/costs.ts` (pricing lookup, job aggregation, daily rollup, anomaly detection)
+
+**Used by:** `app/costs/page.tsx`
 
 ---
 

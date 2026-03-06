@@ -13,8 +13,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Floating Live Stream widget -- global SSE-powered log viewer that persists across navigation. Three states: hidden, collapsed pill, expanded panel with play/pause, copy, and auto-scroll.
 - Expandable log rows: click any row to see the raw JSON payload.
 - Memory Guide tab: categorized best practices (Writing, Search, Maintenance) with DO/DON'T pills, responsive 2-column config visualizer grid.
+- Cost Dashboard page with daily cost chart, per-job breakdown, model distribution, anomaly detection, week-over-week trends, and cache savings estimation.
 - SSE parser library (`lib/sse.ts`) with `parseSSEBuffer()` and `parseSSELine()`.
-- Cost analysis library (`lib/costs.ts`) with `getCostSummary()`.
+- Cost analysis library (`lib/costs.ts`) with `computeCostSummary()`, model pricing table, anomaly detection.
 
 ### Fixed
 
