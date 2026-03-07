@@ -5,7 +5,7 @@
 ```bash
 npm run setup        # Auto-detect OpenClaw config, write .env.local
 npm run dev          # Start dev server (Turbopack, port 3000)
-npm test             # Run all 501 tests via Vitest (23 suites)
+npm test             # Run all 536 tests via Vitest (24 suites)
 npx tsc --noEmit     # Type-check (expect 0 errors)
 npx next build       # Production build
 ```
@@ -124,7 +124,32 @@ Key files: `lib/audio-recorder.ts`, `lib/transcribe.ts`, `components/chat/VoiceM
 
 ### Conversation Persistence
 
-Messages stored in localStorage as JSON. Media attachments are base64 data URLs (not blob URLs -- those don't survive reload). The `conversations.ts` module provides `addMessage()`, `updateLastMessage()`, and `parseMedia()`.
+Messages stored in localStorage as JSON. Media attachments are base64 data URLs (not blob URLs -- those don't survive reload). The `conversations.ts` module provides `addMessage()`, `updateLastMessage()`, and `parseMedia()`. Messages have three roles: `user`, `assistant`, and `system` (slash command results). System messages are never sent to the API -- they're filtered out before building the request.
+
+### Slash Commands
+
+Client-side slash commands in the chat input, handled entirely in the browser (never sent to the gateway):
+
+```
+User types "/" -> matchCommands() shows autocomplete dropdown
+  -> Arrow keys navigate, Enter/Tab selects, Escape dismisses
+  -> parseSlashCommand() validates input
+  -> executeCommand() returns content string + optional action
+  -> System message rendered as accent-bordered card
+```
+
+| Command | Description |
+|---------|-------------|
+| `/clear` | Clear conversation history |
+| `/help` | Show available commands |
+| `/info` | Show agent profile summary (name, title, tools, memory) |
+| `/soul` | Show agent's SOUL.md persona document |
+| `/tools` | List agent's available tools |
+| `/crons` | Show agent's scheduled cron jobs |
+
+**Key files:** `lib/slash-commands.ts` (command registry, parser, matcher, executor), `lib/slash-commands.test.ts` (35 tests)
+
+**System message rendering:** System messages skip avatar/timestamp/spacing logic -- `shouldShowAvatar` and `shouldShowTimestamp` look through system messages to the previous non-system message for grouping. Media parsing is also skipped for system messages.
 
 ### Cost Dashboard
 
@@ -231,12 +256,14 @@ Used by: `lib/memory.ts`, `lib/cron-runs.ts`, `lib/kanban/chat-store.ts`, `lib/c
 | `lib/logs.ts` | `getLogEntries()`, `computeLogSummary()` -- historical log parsing (cron + config) |
 | `lib/costs.ts` | `getCostSummary()` -- cost analysis from cron run data |
 | `lib/sanitize.ts` | `renderMarkdown()`, `colorizeJson()`, `escapeHtml()` -- safe HTML rendering |
+| `lib/slash-commands.ts` | Slash command registry, parser (`parseSlashCommand`), matcher (`matchCommands`), executor (`executeCommand`) |
+| `lib/id.ts` | `generateId()` -- UUID generator with fallback for non-secure contexts (HTTP, older browsers) |
 
 ### Chat Components
 
 | Component | Purpose |
 |-----------|---------|
-| `ConversationView.tsx` | Main chat: messages, input, recording, paste/drop, file staging. Sends `operatorName` in POST body. |
+| `ConversationView.tsx` | Main chat: messages, input, recording, paste/drop, file staging, slash commands. Sends `operatorName` in POST body. |
 | `VoiceMessage.tsx` | Waveform playback: play/pause + animated bar visualization |
 | `FileAttachment.tsx` | File bubble: icon by type + name + size + download |
 | `MediaPreview.tsx` | Pre-send strip of staged attachments with remove buttons |
@@ -262,7 +289,7 @@ Used by: `lib/memory.ts`, `lib/cron-runs.ts`, `lib/kanban/chat-store.ts`, `lib/c
 
 ## Testing
 
-23 test suites, 501 tests total. All in `lib/` directory.
+24 test suites, 536 tests total. All in `lib/` directory.
 
 ```bash
 npx vitest run                     # All tests
@@ -305,6 +332,12 @@ Go to Settings page and click "Re-run Setup Wizard". This opens the wizard with 
 3. Add parsing logic in `loadSettings()`
 4. Add a setter method in `app/settings-provider.tsx`
 5. Consume via `useSettings()` hook in components
+
+### Add a new slash command
+1. Add the command to `COMMANDS` array in `lib/slash-commands.ts`
+2. Add a `case` in `executeCommand()` switch statement
+3. Add tests in `lib/slash-commands.test.ts`
+4. The autocomplete dropdown picks up new commands automatically
 
 ### Change the chat model
 Edit `app/api/chat/[id]/route.ts` -- change the `model` field in `openai.chat.completions.create()`.

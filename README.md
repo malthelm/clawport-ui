@@ -8,7 +8,7 @@
 
 [![npm version](https://img.shields.io/npm/v/clawport-ui.svg)](https://www.npmjs.com/package/clawport-ui)
 [![license](https://img.shields.io/npm/l/clawport-ui.svg)](LICENSE)
-[![tests](https://img.shields.io/badge/tests-501%20passed-brightgreen)](#testing)
+[![tests](https://img.shields.io/badge/tests-536%20passed-brightgreen)](#testing)
 
 [Website](https://clawport.dev) | [Setup Guide](SETUP.md) | [API Docs](docs/API.md) | [npm](https://www.npmjs.com/package/clawport-ui)
 
