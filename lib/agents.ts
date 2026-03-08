@@ -28,5 +28,25 @@ export async function getAgents(): Promise<Agent[]> {
 
 export async function getAgent(id: string): Promise<Agent | null> {
   const agents = await getAgents()
-  return agents.find((a) => a.id === id) ?? null
+
+  // Exact match first
+  const exact = agents.find((a) => a.id === id)
+  if (exact) return exact
+
+  // Backwards-compat alias: many clients assume root agent id is "main".
+  // In customized workspaces the root id can be derived from identity name
+  // (e.g. "serendipity"), so map "main" to the primary orchestrator.
+  if (id === 'main') {
+    const orchestrator = agents.find(
+      (a) => a.reportsTo === null && /orchestrator/i.test(a.title)
+    )
+    if (orchestrator) return orchestrator
+
+    const topLevel = agents.find((a) => a.reportsTo === null)
+    if (topLevel) return topLevel
+
+    return agents[0] ?? null
+  }
+
+  return null
 }
