@@ -442,7 +442,7 @@ export function OnboardingWizard({ forceOpen, onClose }: OnboardingWizardProps) 
                     </div>
                     {cronsStatus === 'ok' && (
                       <div style={{ fontSize: 'var(--text-caption1)', color: 'var(--text-tertiary)' }}>
-                        Connected at localhost:18789
+                        Connected to gateway
                       </div>
                     )}
                     {cronsError && (

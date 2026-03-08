@@ -7,7 +7,7 @@ import OpenAI from 'openai'
 
 // Route through the OpenClaw gateway — no separate API key needed
 const openai = new OpenAI({
-  baseURL: process.env.OPENCLAW_BASE_URL || `http://127.0.0.1:${process.env.OPENCLAW_GATEWAY_PORT || '18789'}/v1`,
+  baseURL: process.env.OPENCLAW_BASE_URL || `http://127.0.0.1:${process.env.OPENCLAW_GATEWAY_PORT || '28789'}/v1`,
   apiKey: process.env.OPENCLAW_GATEWAY_TOKEN,
 })
 
