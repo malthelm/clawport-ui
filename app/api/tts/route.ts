@@ -3,7 +3,7 @@ export const runtime = 'nodejs'
 import OpenAI from 'openai'
 
 const openai = new OpenAI({
-  baseURL: 'http://localhost:18789/v1',
+  baseURL: process.env.OPENCLAW_BASE_URL || `http://127.0.0.1:${process.env.OPENCLAW_GATEWAY_PORT || '18789'}/v1`,
   apiKey: process.env.OPENCLAW_GATEWAY_TOKEN,
 })
 
